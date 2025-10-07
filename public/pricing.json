@@ -1,0 +1,132 @@
+{
+  "currency": "EUR",
+  "features": {
+    "projects.core": { "label": "Core Modules" },
+    "collab.tasks": { "label": "Tasks" },
+    "collab.comments": { "label": "Comments" },
+    "collab.mentions": { "label": "@Mentions" },
+    "collab.notifications": { "label": "In-app Notifications" },
+    "integrations.basic": { "label": "Basic Integrations" },
+    "integrations.advanced": { "label": "Advanced Integrations" },
+    "investor.room": { "label": "Investor Room" },
+    "models.scenarios": { "label": "Scenario Modelling" },
+    "esg.compliance": { "label": "ESG Compliance" },
+    "exports.pdf": { "label": "PDF Export" },
+    "exports.ppt": { "label": "PPT Export" },
+    "ai.analyst": { "label": "AI Analyst" }
+  },
+  "plans": {
+    "starter": {
+      "name": "Starter",
+      "seat_pricing": false,
+      "billing": { "monthly": 0, "annual": 0 },
+      "limits": {
+        "seats_max": 1,
+        "viewer_seats_free": 0,
+        "projects_max": 1,
+        "exports_per_month": 3,
+        "storage_items_max": 100,
+        "integrations_max": 0
+      },
+      "grants": {
+        "projects.core": true,
+        "exports.pdf": true,
+        "exports.ppt": false,
+        "collab.tasks": false,
+        "collab.comments": false,
+        "collab.mentions": false,
+        "collab.notifications": false,
+        "integrations.basic": false,
+        "integrations.advanced": false,
+        "investor.room": false,
+        "models.scenarios": false,
+        "esg.compliance": false,
+        "ai.analyst": false
+      }
+    },
+    "solo": {
+      "name": "Solo",
+      "seat_pricing": true,
+      "billing": { "monthly": 24, "annual": 19 },
+      "limits": {
+        "seats_max": 1,
+        "viewer_seats_free": 0,
+        "projects_max": 3,
+        "exports_per_month": 20,
+        "storage_items_max": 1000,
+        "integrations_max": 0
+      },
+      "grants": {
+        "projects.core": true,
+        "exports.pdf": true,
+        "exports.ppt": true,
+        "collab.tasks": false,
+        "collab.comments": true,
+        "collab.mentions": false,
+        "collab.notifications": false,
+        "integrations.basic": false,
+        "integrations.advanced": false,
+        "investor.room": false,
+        "models.scenarios": false,
+        "esg.compliance": false,
+        "ai.analyst": false
+      }
+    },
+    "pro": {
+      "name": "Pro Team",
+      "seat_pricing": true,
+      "billing": { "monthly": 59, "annual": 49 },
+      "limits": {
+        "seats_max": 20,
+        "viewer_seats_free": 5,
+        "projects_max": "unlimited",
+        "exports_per_month": 200,
+        "storage_items_max": 10000,
+        "integrations_max": 5
+      },
+      "grants": {
+        "projects.core": true,
+        "exports.pdf": true,
+        "exports.ppt": true,
+        "collab.tasks": true,
+        "collab.comments": true,
+        "collab.mentions": true,
+        "collab.notifications": true,
+        "integrations.basic": true,
+        "integrations.advanced": false,
+        "investor.room": { "enabled": true, "allowance": 1 },
+        "models.scenarios": true,
+        "esg.compliance": { "enabled": true },
+        "ai.analyst": { "enabled": true, "allowance": 1000000 }
+      }
+    },
+    "business": {
+      "name": "Business",
+      "seat_pricing": true,
+      "billing": { "monthly": 119, "annual": 99 },
+      "limits": {
+        "seats_max": 100,
+        "viewer_seats_free": 100,
+        "projects_max": "unlimited",
+        "exports_per_month": 1000,
+        "storage_items_max": 100000,
+        "integrations_max": 10
+      },
+      "grants": {
+        "projects.core": true,
+        "exports.pdf": true,
+        "exports.ppt": true,
+        "collab.tasks": true,
+        "collab.comments": true,
+        "collab.mentions": true,
+        "collab.notifications": true,
+        "integrations.basic": true,
+        "integrations.advanced": true,
+        "investor.room": true,
+        "models.scenarios": true,
+        "esg.compliance": true,
+        "ai.analyst": { "enabled": true, "allowance": 3000000 }
+      }
+    }
+  }
+}

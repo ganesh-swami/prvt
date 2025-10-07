@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://growthos.app/schemas/pricing.json",
+  "title": "GrowthOS Pricing Config",
+  "type": "object",
+  "required": ["currency", "plans", "features"],
+  "properties": {
+    "currency": { "type": "string", "enum": ["EUR", "USD", "GBP"] },
+    "features": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["label"],
+        "properties": {
+          "label": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "plans": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["name", "billing", "limits", "grants"],
+        "properties": {
+          "name": { "type": "string" },
+          "public": { "type": "boolean" },
+          "seat_pricing": { "type": "boolean" },
+          "billing": {
+            "type": "object",
+            "required": ["monthly", "annual"],
+            "properties": {
+              "monthly": { "type": "number", "minimum": 0 },
+              "annual": { "type": "number", "minimum": 0 }
+            }
+          },
+          "limits": {
+            "type": "object",
+            "properties": {
+              "seats_max": { "type": ["integer", "string"] },
+              "viewer_seats_free": { "type": ["integer", "string"] },
+              "projects_max": { "type": ["integer", "string"] },
+              "exports_per_month": { "type": ["integer", "string"] },
+              "storage_items_max": { "type": ["integer", "string"] },
+              "integrations_max": { "type": ["integer", "string"] }
+            }
+          },
+          "grants": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                { "type": "boolean" },
+                {
+                  "type": "object",
+                  "required": ["enabled"],
+                  "properties": {
+                    "enabled": { "type": "boolean" },
+                    "allowance": { "type": ["integer", "string"] }
+                  }
+                }
+              ]
+            }
+          },
+          "addons_included": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "addons": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["name", "billing", "grants"],
+        "properties": {
+          "name": { "type": "string" },
+          "billing": {
+            "type": "object",
+            "properties": {
+              "monthly": { "type": "number", "minimum": 0 },
+              "annual": { "type": "number", "minimum": 0 }
+            }
+          },
+          "grants": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                { "type": "boolean" },
+                {
+                  "type": "object",
+                  "required": ["enabled"],
+                  "properties": {
+                    "enabled": { "type": "boolean" },
+                    "allowance": { "type": ["integer", "string"] }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
