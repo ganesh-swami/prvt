@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS public.business_plans (
   value_proposition text,
   target_market text,
   business_model text,
+  plan_builder jsonb DEFAULT '{}'::jsonb,
   revenue_streams jsonb DEFAULT '[]'::jsonb,
   key_metrics jsonb DEFAULT '{}'::jsonb,
   created_at timestamp with time zone DEFAULT now(),

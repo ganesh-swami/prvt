@@ -15,9 +15,11 @@ import {
 import { CustomTooltip } from "@/components/common/CustomTooltip";
 import SaveDraftButton from "@/components/common/SaveDraftButton";
 import { allPlanSections } from "./PlanBuilderSectionsComplete";
+import { supabase } from "@/lib/supabase";
 
 const PlanBuilderEnhanced: React.FC = () => {
   const [activeSection, setActiveSection] = useState("executive");
+  const [businessPlanID, setBusinessPlanID] = useState<string | null>(null);
   const [planData, setPlanData] = useState<
     Record<string, Record<string, string>>
   >({});
@@ -43,17 +45,88 @@ const PlanBuilderEnhanced: React.FC = () => {
     }));
   };
 
-  const markSectionComplete = (sectionId: string) => {
-    setSections((prev) =>
-      prev.map((section) =>
-        section.id === sectionId ? { ...section, completed: true } : section
-      )
+  const markSectionComplete = async (sectionId: string) => {
+    const updatedSections = sections.map((section) =>
+      section.id === sectionId ? { ...section, completed: true } : section
     );
+
+    console.log("updatedSections", updatedSections);
+
+    console.log("supabase", supabase);
+
+    // // @ts-expect-error
+    // window.supabase = supabase;
+
+    console.log("before query", { url: import.meta.env.VITE_SUPABASE_URL });
+    const startedAt = performance.now();
+    try {
+      const { data, error } = await supabase.from("Temp").select("*");
+      console.log("after query (ms)", performance.now() - startedAt, {
+        data,
+        error,
+      });
+    } catch (e) {
+      console.error("query threw", e);
+    }
+
+    try {
+      if (!businessPlanID) {
+        // Create new business_plan
+        console.log("Creating new business plan");
+        const { data, error } = await supabase
+          .from("business_plans")
+          .insert([{ plan_builder: updatedSections }])
+          .select()
+          .single();
+
+        console.error("Error creating business plan:", error);
+        if (error) throw error;
+
+        if (data) {
+          setBusinessPlanID(data.id);
+          // Update local state with the new ID
+          setSections(updatedSections);
+        }
+      } else {
+        // Update existing business_plan
+        const { error } = await supabase
+          .from("business_plans")
+          .update({
+            plan_builder: updatedSections,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", businessPlanID);
+
+        if (error) throw error;
+
+        // Update local state
+        setSections(updatedSections);
+      }
+    } catch (error) {
+      console.error("Error saving business plan:", error);
+      // Optionally show error to user
+    }
   };
 
   useEffect(() => {
-    console.log("planData", planData);
-  }, [planData]);
+    const temp = async () => {
+      console.log("=== Starting test ===");
+      try {
+        console.log("user checking");
+
+        const { data: Temp, error } = await supabase.from("Temp").select("*");
+
+        // const { data, error } = await supabase.auth.getSession();
+        console.log("data;;;;;;", Temp, error);
+      } catch (e) {
+        console.error("user check failed:", e);
+      }
+
+      console.log("=== Test complete ===");
+    };
+
+    temp();
+  }, []);
 
   const activeData = sections.find((s) => s.id === activeSection);
 

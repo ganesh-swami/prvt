@@ -1,36 +1,38 @@
-import { supabase } from './supabase';
-import { 
-  User, 
-  Organization, 
-  OrgMember, 
-  Project, 
+import { supabase } from "./supabase";
+import {
+  User,
+  Organization,
+  OrgMember,
+  Project,
   ProjectCollaborator,
-  BusinessPlan, 
-  MarketAssumptions, 
-  PricingScenario, 
+  BusinessPlan,
+  MarketAssumptions,
+  PricingScenario,
   FinancialModel,
   Competitor,
-  Comment, 
-  Task, 
+  Comment,
+  Task,
   Mention,
   Notification,
   AnalyticsEvent,
   Subscription,
   UsageCounter,
   Template,
-  Draft
-} from '@/types';
+  Draft,
+} from "@/types";
 
 // User API
 export const userApi = {
   async getCurrentUser(): Promise<User | null> {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return null;
 
     const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', user.id)
+      .from("users")
+      .select("*")
+      .eq("id", user.id)
       .single();
 
     if (error) throw error;
@@ -39,9 +41,9 @@ export const userApi = {
 
   async updateUser(id: string, updates: Partial<User>): Promise<User> {
     const { data, error } = await supabase
-      .from('users')
+      .from("users")
       .update(updates)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -51,22 +53,23 @@ export const userApi = {
 
   async getUserById(id: string): Promise<User | null> {
     const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', id)
+      .from("users")
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (error) return null;
     return data;
-  }
+  },
 };
 
 // Organization API
 export const organizationApi = {
   async getUserOrganizations(userId: string): Promise<Organization[]> {
     const { data, error } = await supabase
-      .from('org_members')
-      .select(`
+      .from("org_members")
+      .select(
+        `
         org_id,
         organizations!inner (
           id,
@@ -78,29 +81,35 @@ export const organizationApi = {
           stripe_customer_id,
           subscription_period_end
         )
-      `)
-      .eq('user_id', userId);
+      `
+      )
+      .eq("user_id", userId);
 
     if (error) throw error;
-    return data?.map((item: any) => item.organizations as Organization).filter(Boolean) || [];
+    return (
+      data
+        ?.map((item: any) => item.organizations as Organization)
+        .filter(Boolean) || []
+    );
   },
 
-  async createOrganization(name: string, ownerId: string): Promise<Organization> {
+  async createOrganization(
+    name: string,
+    ownerId: string
+  ): Promise<Organization> {
     const { data: org, error: orgError } = await supabase
-      .from('organizations')
+      .from("organizations")
       .insert({ name })
       .select()
       .single();
 
     if (orgError) throw orgError;
 
-    const { error: memberError } = await supabase
-      .from('org_members')
-      .insert({
-        org_id: org.id,
-        user_id: ownerId,
-        role: 'owner'
-      });
+    const { error: memberError } = await supabase.from("org_members").insert({
+      org_id: org.id,
+      user_id: ownerId,
+      role: "owner",
+    });
 
     if (memberError) throw memberError;
     return org;
@@ -108,26 +117,28 @@ export const organizationApi = {
 
   async getOrganizationMembers(orgId: string): Promise<OrgMember[]> {
     const { data, error } = await supabase
-      .from('org_members')
-      .select(`
+      .from("org_members")
+      .select(
+        `
         *,
         users (name, email, avatar_url)
-      `)
-      .eq('org_id', orgId);
+      `
+      )
+      .eq("org_id", orgId);
 
     if (error) throw error;
     return data || [];
-  }
+  },
 };
 
 // Project API
 export const projectApi = {
   async getProjects(userId: string): Promise<Project[]> {
     const { data, error } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('owner_id', userId)
-      .order('updated_at', { ascending: false });
+      .from("projects")
+      .select("*")
+      .eq("owner_id", userId)
+      .order("updated_at", { ascending: false });
 
     if (error) throw error;
     return data || [];
@@ -135,18 +146,20 @@ export const projectApi = {
 
   async getProjectById(id: string): Promise<Project | null> {
     const { data, error } = await supabase
-      .from('projects')
-      .select('*')
-      .eq('id', id)
+      .from("projects")
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (error) return null;
     return data;
   },
 
-  async createProject(project: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<Project> {
+  async createProject(
+    project: Omit<Project, "id" | "created_at" | "updated_at">
+  ): Promise<Project> {
     const { data, error } = await supabase
-      .from('projects')
+      .from("projects")
       .insert(project)
       .select()
       .single();
@@ -157,9 +170,9 @@ export const projectApi = {
 
   async updateProject(id: string, updates: Partial<Project>): Promise<Project> {
     const { data, error } = await supabase
-      .from('projects')
+      .from("projects")
       .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -168,44 +181,47 @@ export const projectApi = {
   },
 
   async deleteProject(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('projects')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from("projects").delete().eq("id", id);
 
     if (error) throw error;
   },
 
-  async getProjectCollaborators(projectId: string): Promise<ProjectCollaborator[]> {
+  async getProjectCollaborators(
+    projectId: string
+  ): Promise<ProjectCollaborator[]> {
     const { data, error } = await supabase
-      .from('project_collaborators')
-      .select(`
+      .from("project_collaborators")
+      .select(
+        `
         *,
         users (name, email, avatar_url)
-      `)
-      .eq('project_id', projectId);
+      `
+      )
+      .eq("project_id", projectId);
 
     if (error) throw error;
     return data || [];
-  }
+  },
 };
 
 // Business Plan API
 export const businessPlanApi = {
   async getByProjectId(projectId: string): Promise<BusinessPlan | null> {
     const { data, error } = await supabase
-      .from('business_plans')
-      .select('*')
-      .eq('project_id', projectId)
+      .from("business_plans")
+      .select("*")
+      .eq("project_id", projectId)
       .single();
 
     if (error) return null;
     return data;
   },
 
-  async create(businessPlan: Omit<BusinessPlan, 'id' | 'created_at' | 'updated_at'>): Promise<BusinessPlan> {
+  async create(
+    businessPlan: Omit<BusinessPlan, "id" | "created_at" | "updated_at">
+  ): Promise<BusinessPlan> {
     const { data, error } = await supabase
-      .from('business_plans')
+      .from("business_plans")
       .insert(businessPlan)
       .select()
       .single();
@@ -214,35 +230,40 @@ export const businessPlanApi = {
     return data;
   },
 
-  async update(id: string, updates: Partial<BusinessPlan>): Promise<BusinessPlan> {
+  async update(
+    id: string,
+    updates: Partial<BusinessPlan>
+  ): Promise<BusinessPlan> {
     const { data, error } = await supabase
-      .from('business_plans')
+      .from("business_plans")
       .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
     if (error) throw error;
     return data;
-  }
+  },
 };
 
 // Market Assumptions API
 export const marketAssumptionsApi = {
   async getByProjectId(projectId: string): Promise<MarketAssumptions | null> {
     const { data, error } = await supabase
-      .from('market_assumptions')
-      .select('*')
-      .eq('project_id', projectId)
+      .from("market_assumptions")
+      .select("*")
+      .eq("project_id", projectId)
       .single();
 
     if (error) return null;
     return data;
   },
 
-  async create(assumptions: Omit<MarketAssumptions, 'id' | 'created_at' | 'updated_at'>): Promise<MarketAssumptions> {
+  async create(
+    assumptions: Omit<MarketAssumptions, "id" | "created_at" | "updated_at">
+  ): Promise<MarketAssumptions> {
     const { data, error } = await supabase
-      .from('market_assumptions')
+      .from("market_assumptions")
       .insert(assumptions)
       .select()
       .single();
@@ -251,35 +272,40 @@ export const marketAssumptionsApi = {
     return data;
   },
 
-  async update(id: string, updates: Partial<MarketAssumptions>): Promise<MarketAssumptions> {
+  async update(
+    id: string,
+    updates: Partial<MarketAssumptions>
+  ): Promise<MarketAssumptions> {
     const { data, error } = await supabase
-      .from('market_assumptions')
+      .from("market_assumptions")
       .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
     if (error) throw error;
     return data;
-  }
+  },
 };
 
 // Pricing Scenarios API
 export const pricingScenariosApi = {
   async getByProjectId(projectId: string): Promise<PricingScenario[]> {
     const { data, error } = await supabase
-      .from('pricing_scenarios')
-      .select('*')
-      .eq('project_id', projectId)
-      .order('created_at', { ascending: false });
+      .from("pricing_scenarios")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false });
 
     if (error) throw error;
     return data || [];
   },
 
-  async create(scenario: Omit<PricingScenario, 'id' | 'created_at' | 'updated_at'>): Promise<PricingScenario> {
+  async create(
+    scenario: Omit<PricingScenario, "id" | "created_at" | "updated_at">
+  ): Promise<PricingScenario> {
     const { data, error } = await supabase
-      .from('pricing_scenarios')
+      .from("pricing_scenarios")
       .insert(scenario)
       .select()
       .single();
@@ -288,11 +314,14 @@ export const pricingScenariosApi = {
     return data;
   },
 
-  async update(id: string, updates: Partial<PricingScenario>): Promise<PricingScenario> {
+  async update(
+    id: string,
+    updates: Partial<PricingScenario>
+  ): Promise<PricingScenario> {
     const { data, error } = await supabase
-      .from('pricing_scenarios')
+      .from("pricing_scenarios")
       .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -302,30 +331,32 @@ export const pricingScenariosApi = {
 
   async delete(id: string): Promise<void> {
     const { error } = await supabase
-      .from('pricing_scenarios')
+      .from("pricing_scenarios")
       .delete()
-      .eq('id', id);
+      .eq("id", id);
 
     if (error) throw error;
-  }
+  },
 };
 
 // Financial Models API
 export const financialModelsApi = {
   async getByProjectId(projectId: string): Promise<FinancialModel[]> {
     const { data, error } = await supabase
-      .from('financial_models')
-      .select('*')
-      .eq('project_id', projectId)
-      .order('created_at', { ascending: false });
+      .from("financial_models")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false });
 
     if (error) throw error;
     return data || [];
   },
 
-  async create(model: Omit<FinancialModel, 'id' | 'created_at' | 'updated_at'>): Promise<FinancialModel> {
+  async create(
+    model: Omit<FinancialModel, "id" | "created_at" | "updated_at">
+  ): Promise<FinancialModel> {
     const { data, error } = await supabase
-      .from('financial_models')
+      .from("financial_models")
       .insert(model)
       .select()
       .single();
@@ -334,35 +365,40 @@ export const financialModelsApi = {
     return data;
   },
 
-  async update(id: string, updates: Partial<FinancialModel>): Promise<FinancialModel> {
+  async update(
+    id: string,
+    updates: Partial<FinancialModel>
+  ): Promise<FinancialModel> {
     const { data, error } = await supabase
-      .from('financial_models')
+      .from("financial_models")
       .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
     if (error) throw error;
     return data;
-  }
+  },
 };
 
 // Competitors API
 export const competitorsApi = {
   async getByProjectId(projectId: string): Promise<Competitor[]> {
     const { data, error } = await supabase
-      .from('competitors')
-      .select('*')
-      .eq('project_id', projectId)
-      .order('created_at', { ascending: false });
+      .from("competitors")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false });
 
     if (error) throw error;
     return data || [];
   },
 
-  async create(competitor: Omit<Competitor, 'id' | 'created_at' | 'updated_at'>): Promise<Competitor> {
+  async create(
+    competitor: Omit<Competitor, "id" | "created_at" | "updated_at">
+  ): Promise<Competitor> {
     const { data, error } = await supabase
-      .from('competitors')
+      .from("competitors")
       .insert(competitor)
       .select()
       .single();
@@ -373,9 +409,9 @@ export const competitorsApi = {
 
   async update(id: string, updates: Partial<Competitor>): Promise<Competitor> {
     const { data, error } = await supabase
-      .from('competitors')
+      .from("competitors")
       .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -384,173 +420,202 @@ export const competitorsApi = {
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('competitors')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from("competitors").delete().eq("id", id);
 
     if (error) throw error;
-  }
+  },
 };
 
 // Comments API
 export const commentsApi = {
-  async getByProject(projectId: string, module?: string, section?: string): Promise<Comment[]> {
+  async getByProject(
+    projectId: string,
+    module?: string,
+    section?: string
+  ): Promise<Comment[]> {
     let query = supabase
-      .from('comments')
-      .select(`
+      .from("comments")
+      .select(
+        `
         *,
         users!comments_author_id_fkey (name, avatar_url)
-      `)
-      .eq('project_id', projectId);
+      `
+      )
+      .eq("project_id", projectId);
 
-    if (module) query = query.eq('module', module);
-    if (section) query = query.eq('section', section);
+    if (module) query = query.eq("module", module);
+    if (section) query = query.eq("section", section);
 
-    const { data, error } = await query.order('created_at', { ascending: true });
+    const { data, error } = await query.order("created_at", {
+      ascending: true,
+    });
 
     if (error) throw error;
-    return data?.map(comment => ({
-      ...comment,
-      author: comment.users ? {
-        name: comment.users.name,
-        avatar_url: comment.users.avatar_url
-      } : undefined
-    })) || [];
+    return (
+      data?.map((comment) => ({
+        ...comment,
+        author: comment.users
+          ? {
+              name: comment.users.name,
+              avatar_url: comment.users.avatar_url,
+            }
+          : undefined,
+      })) || []
+    );
   },
 
-  async create(comment: Omit<Comment, 'id' | 'created_at' | 'updated_at' | 'author'>): Promise<Comment> {
+  async create(
+    comment: Omit<Comment, "id" | "created_at" | "updated_at" | "author">
+  ): Promise<Comment> {
     const { data, error } = await supabase
-      .from('comments')
+      .from("comments")
       .insert(comment)
-      .select(`
+      .select(
+        `
         *,
         users!comments_author_id_fkey (name, avatar_url)
-      `)
+      `
+      )
       .single();
 
     if (error) throw error;
     return {
       ...data,
-      author: data.users ? {
-        name: data.users.name,
-        avatar_url: data.users.avatar_url
-      } : undefined
+      author: data.users
+        ? {
+            name: data.users.name,
+            avatar_url: data.users.avatar_url,
+          }
+        : undefined,
     };
   },
 
   async update(id: string, updates: Partial<Comment>): Promise<Comment> {
     const { data, error } = await supabase
-      .from('comments')
+      .from("comments")
       .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select(`
+      .eq("id", id)
+      .select(
+        `
         *,
         users!comments_author_id_fkey (name, avatar_url)
-      `)
+      `
+      )
       .single();
 
     if (error) throw error;
     return {
       ...data,
-      author: data.users ? {
-        name: data.users.name,
-        avatar_url: data.users.avatar_url
-      } : undefined
+      author: data.users
+        ? {
+            name: data.users.name,
+            avatar_url: data.users.avatar_url,
+          }
+        : undefined,
     };
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('comments')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from("comments").delete().eq("id", id);
 
     if (error) throw error;
-  }
+  },
 };
 
 // Tasks API
 export const tasksApi = {
   async getByProject(projectId: string): Promise<Task[]> {
     const { data, error } = await supabase
-      .from('tasks')
-      .select(`
+      .from("tasks")
+      .select(
+        `
         *,
         assignee:users!tasks_assignee_id_fkey (name, avatar_url)
-      `)
-      .eq('project_id', projectId)
-      .order('created_at', { ascending: false });
+      `
+      )
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return data?.map(task => ({
-      ...task,
-      assignee: task.assignee ? {
-        name: task.assignee.name,
-        avatar_url: task.assignee.avatar_url
-      } : undefined
-    })) || [];
+    return (
+      data?.map((task) => ({
+        ...task,
+        assignee: task.assignee
+          ? {
+              name: task.assignee.name,
+              avatar_url: task.assignee.avatar_url,
+            }
+          : undefined,
+      })) || []
+    );
   },
 
-  async create(task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'assignee'>): Promise<Task> {
+  async create(
+    task: Omit<Task, "id" | "created_at" | "updated_at" | "assignee">
+  ): Promise<Task> {
     const { data, error } = await supabase
-      .from('tasks')
+      .from("tasks")
       .insert(task)
-      .select(`
+      .select(
+        `
         *,
         assignee:users!tasks_assignee_id_fkey (name, avatar_url)
-      `)
+      `
+      )
       .single();
 
     if (error) throw error;
     return {
       ...data,
-      assignee: data.assignee ? {
-        name: data.assignee.name,
-        avatar_url: data.assignee.avatar_url
-      } : undefined
+      assignee: data.assignee
+        ? {
+            name: data.assignee.name,
+            avatar_url: data.assignee.avatar_url,
+          }
+        : undefined,
     };
   },
 
   async update(id: string, updates: Partial<Task>): Promise<Task> {
     const { data, error } = await supabase
-      .from('tasks')
+      .from("tasks")
       .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select(`
+      .eq("id", id)
+      .select(
+        `
         *,
         assignee:users!tasks_assignee_id_fkey (name, avatar_url)
-      `)
+      `
+      )
       .single();
 
     if (error) throw error;
     return {
       ...data,
-      assignee: data.assignee ? {
-        name: data.assignee.name,
-        avatar_url: data.assignee.avatar_url
-      } : undefined
+      assignee: data.assignee
+        ? {
+            name: data.assignee.name,
+            avatar_url: data.assignee.avatar_url,
+          }
+        : undefined,
     };
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('tasks')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from("tasks").delete().eq("id", id);
 
     if (error) throw error;
-  }
+  },
 };
 
 // Notifications API
 export const notificationsApi = {
   async getByUser(userId: string, limit = 50): Promise<Notification[]> {
     const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+      .from("notifications")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
       .limit(limit);
 
     if (error) throw error;
@@ -559,34 +624,36 @@ export const notificationsApi = {
 
   async markAsRead(id: string): Promise<void> {
     const { error } = await supabase
-      .from('notifications')
+      .from("notifications")
       .update({ read: true, updated_at: new Date().toISOString() })
-      .eq('id', id);
+      .eq("id", id);
 
     if (error) throw error;
   },
 
-  async create(notification: Omit<Notification, 'id' | 'created_at' | 'updated_at'>): Promise<Notification> {
+  async create(
+    notification: Omit<Notification, "id" | "created_at" | "updated_at">
+  ): Promise<Notification> {
     const { data, error } = await supabase
-      .from('notifications')
+      .from("notifications")
       .insert(notification)
       .select()
       .single();
 
     if (error) throw error;
     return data;
-  }
+  },
 };
 
 // Analytics API
 export const analyticsApi = {
-  async trackEvent(event: Omit<AnalyticsEvent, 'id' | 'timestamp' | 'created_at'>): Promise<void> {
-    const { error } = await supabase
-      .from('analytics_events')
-      .insert({
-        ...event,
-        timestamp: new Date().toISOString()
-      });
+  async trackEvent(
+    event: Omit<AnalyticsEvent, "id" | "timestamp" | "created_at">
+  ): Promise<void> {
+    const { error } = await supabase.from("analytics_events").insert({
+      ...event,
+      timestamp: new Date().toISOString(),
+    });
 
     if (error) throw error;
   },
@@ -599,66 +666,79 @@ export const analyticsApi = {
     end_date?: string;
     limit?: number;
   }): Promise<AnalyticsEvent[]> {
-    let query = supabase.from('analytics_events').select('*');
+    let query = supabase.from("analytics_events").select("*");
 
-    if (filters.user_id) query = query.eq('user_id', filters.user_id);
-    if (filters.org_id) query = query.eq('org_id', filters.org_id);
-    if (filters.event_name) query = query.eq('event_name', filters.event_name);
-    if (filters.start_date) query = query.gte('timestamp', filters.start_date);
-    if (filters.end_date) query = query.lte('timestamp', filters.end_date);
+    if (filters.user_id) query = query.eq("user_id", filters.user_id);
+    if (filters.org_id) query = query.eq("org_id", filters.org_id);
+    if (filters.event_name) query = query.eq("event_name", filters.event_name);
+    if (filters.start_date) query = query.gte("timestamp", filters.start_date);
+    if (filters.end_date) query = query.lte("timestamp", filters.end_date);
 
     const { data, error } = await query
-      .order('timestamp', { ascending: false })
+      .order("timestamp", { ascending: false })
       .limit(filters.limit || 100);
 
     if (error) throw error;
     return data || [];
-  }
+  },
 };
 
 // Usage Counters API
 export const usageCountersApi = {
-  async getUsage(orgId: string, feature: string, periodStart?: string): Promise<UsageCounter | null> {
-    const period = periodStart || new Date().toISOString().split('T')[0];
-    
+  async getUsage(
+    orgId: string,
+    feature: string,
+    periodStart?: string
+  ): Promise<UsageCounter | null> {
+    const period = periodStart || new Date().toISOString().split("T")[0];
+
     const { data, error } = await supabase
-      .from('usage_counters')
-      .select('*')
-      .eq('org_id', orgId)
-      .eq('feature', feature)
-      .eq('period_start', period)
+      .from("usage_counters")
+      .select("*")
+      .eq("org_id", orgId)
+      .eq("feature", feature)
+      .eq("period_start", period)
       .single();
 
     if (error) return null;
     return data;
   },
 
-  async incrementUsage(orgId: string, feature: string, increment = 1): Promise<UsageCounter> {
-    const periodStart = new Date().toISOString().split('T')[0];
-    
-    const { data, error } = await supabase
-      .rpc('increment_usage_counter', {
-        p_org_id: orgId,
-        p_feature: feature,
-        p_period_start: periodStart,
-        p_increment: increment
-      });
+  async incrementUsage(
+    orgId: string,
+    feature: string,
+    increment = 1
+  ): Promise<UsageCounter> {
+    const periodStart = new Date().toISOString().split("T")[0];
+
+    const { data, error } = await supabase.rpc("increment_usage_counter", {
+      p_org_id: orgId,
+      p_feature: feature,
+      p_period_start: periodStart,
+      p_increment: increment,
+    });
 
     if (error) throw error;
     return data;
-  }
+  },
 };
 
 // Templates API
 export const templatesApi = {
-  async getAll(filters?: { category?: string; status?: string; featured?: boolean }): Promise<Template[]> {
-    let query = supabase.from('templates').select('*');
+  async getAll(filters?: {
+    category?: string;
+    status?: string;
+    featured?: boolean;
+  }): Promise<Template[]> {
+    let query = supabase.from("templates").select("*");
 
-    if (filters?.category) query = query.eq('category', filters.category);
-    if (filters?.status) query = query.eq('status', filters.status);
-    if (filters?.featured) query = query.eq('is_featured', filters.featured);
+    if (filters?.category) query = query.eq("category", filters.category);
+    if (filters?.status) query = query.eq("status", filters.status);
+    if (filters?.featured) query = query.eq("is_featured", filters.featured);
 
-    const { data, error } = await query.order('created_at', { ascending: false });
+    const { data, error } = await query.order("created_at", {
+      ascending: false,
+    });
 
     if (error) throw error;
     return data || [];
@@ -666,32 +746,34 @@ export const templatesApi = {
 
   async getById(id: string): Promise<Template | null> {
     const { data, error } = await supabase
-      .from('templates')
-      .select('*')
-      .eq('id', id)
+      .from("templates")
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (error) return null;
     return data;
-  }
+  },
 };
 
 // Drafts API
 export const draftsApi = {
   async getByUser(userId: string): Promise<Draft[]> {
     const { data, error } = await supabase
-      .from('drafts')
-      .select('*')
-      .eq('user_id', userId)
-      .order('updated_at', { ascending: false });
+      .from("drafts")
+      .select("*")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false });
 
     if (error) throw error;
     return data || [];
   },
 
-  async create(draft: Omit<Draft, 'id' | 'created_at' | 'updated_at'>): Promise<Draft> {
+  async create(
+    draft: Omit<Draft, "id" | "created_at" | "updated_at">
+  ): Promise<Draft> {
     const { data, error } = await supabase
-      .from('drafts')
+      .from("drafts")
       .insert(draft)
       .select()
       .single();
@@ -702,9 +784,9 @@ export const draftsApi = {
 
   async update(id: string, updates: Partial<Draft>): Promise<Draft> {
     const { data, error } = await supabase
-      .from('drafts')
+      .from("drafts")
       .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -713,11 +795,8 @@ export const draftsApi = {
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('drafts')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from("drafts").delete().eq("id", id);
 
     if (error) throw error;
-  }
+  },
 };

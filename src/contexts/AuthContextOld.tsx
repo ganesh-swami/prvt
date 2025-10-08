@@ -74,25 +74,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       };
     }
 
-    // Listen for auth changes (this fires immediately with current session)
-    console.log("🔐 AuthProvider: Setting up onAuthStateChange listener");
+    // Get initial session with timeout protection
+    console.log("🔐 AuthProvider: Calling supabase.auth.getSession()...");
+
+    window.supabase = supabase;
+    const getSessionWithTimeout = Promise.race([
+      supabase.auth.getSession(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("getSession timeout after 2s")), 2000)
+      ),
+    ]);
+
+    getSessionWithTimeout
+      .then((result: any) => {
+        const {
+          data: { session },
+          error,
+        } = result;
+        console.log("✅ AuthProvider: getSession resolved", {
+          hasSession: !!session,
+          error: error?.message || null,
+        });
+
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          console.log(
+            "👤 AuthProvider: User found, setting loading=false and fetching app user"
+          );
+          // CRITICAL: Set loading=false BEFORE async fetch
+          setLoading(false);
+          // Fetch user data in background (non-blocking)
+          fetchAppUser(session.user.id).catch((err) => {
+            console.error("⚠️ fetchAppUser failed:", err);
+          });
+        } else {
+          console.log("✅ AuthProvider: No session, setting loading=false");
+          setLoading(false);
+        }
+      })
+      .catch((e) => {
+        console.error("❌ AuthProvider: getSession failed/timeout:", e.message);
+        console.log("⚠️ Proceeding without session...");
+        setUser(null);
+        setLoading(false);
+      });
+
+    // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log(
-        "🔔 onAuthStateChange fired:",
-        event,
-        "hasSession:",
-        !!session
-      );
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null);
-
       if (session?.user) {
-        // CRITICAL: Don't await - fetch in background to avoid blocking Supabase client
-        setLoading(false); // Unblock UI immediately
-        fetchAppUser(session.user.id).catch((err) => {
-          console.error("⚠️ fetchAppUser failed in onAuthStateChange:", err);
-        });
+        await fetchAppUser(session.user.id);
       } else {
         setUser(null);
         setAppUser(null);
@@ -157,11 +191,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       await database.signIn(email, password);
       // loading will normally be cleared by onAuthStateChange → fetchAppUser.finally
     } catch (error) {
-      console.error("Failed to login:", error);
+      console.error(" failed to login :::: ", error);
       throw error;
     } finally {
       // Safety: ensure UI doesn't deadlock if auth event doesn't arrive
       setLoading(false);
+      // now check if user has session
+      const usersession = await supabase.auth.getSession();
+
+      console.log("userSession ", usersession);
     }
   };
 

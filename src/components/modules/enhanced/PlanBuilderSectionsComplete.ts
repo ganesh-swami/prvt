@@ -37,7 +37,7 @@ export const allPlanSections: PlanSection[] = [
         label: "Executive Summary",
         type: "textarea",
         placeholder:
-          "Compelling overview of your business, market opportunity, and financial projections...2222",
+          "Compelling overview of your business, market opportunity, and financial projections...",
         tooltip: {
           title: "Executive Summary",
           description: "A concise overview of your entire business plan",
