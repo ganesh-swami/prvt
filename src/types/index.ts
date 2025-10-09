@@ -72,6 +72,7 @@ export interface BusinessPlan {
   executive_summary?: string;
   problem_statement?: string;
   solution_description?: string;
+  plan_builder?: Record<string, Record<string, string | boolean>>; // Plan Builder data
   created_at: string;
   updated_at: string;
 }

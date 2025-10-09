@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,124 +11,134 @@ import {
   ChevronRight,
   FileText,
   Lightbulb,
+  Loader2,
+  Save,
 } from "lucide-react";
 import { CustomTooltip } from "@/components/common/CustomTooltip";
-import SaveDraftButton from "@/components/common/SaveDraftButton";
 import { allPlanSections } from "./PlanBuilderSectionsComplete";
-import { supabase } from "@/lib/supabase";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  fetchPlanBuilder,
+  savePlanBuilder,
+  markSectionComplete as markSectionCompleteAction,
+  setActiveSection,
+  setProjectId,
+  setSections,
+  updateFieldValue as updateFieldValueAction,
+  selectPlanBuilder,
+  selectActiveSectionData,
+  selectProgressPercentage,
+  selectIsLoading,
+  selectIsSaving,
+  selectError,
+  selectIsDirty,
+} from "@/store/slices/planBuilderSlice";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const PlanBuilderEnhanced: React.FC = () => {
-  const [activeSection, setActiveSection] = useState("executive");
-  const [businessPlanID, setBusinessPlanID] = useState<string | null>(null);
-  const [planData, setPlanData] = useState<
-    Record<string, Record<string, string>>
-  >({});
-  const [sections, setSections] = useState(allPlanSections);
+  const dispatch = useAppDispatch();
+  const { currentOrganization } = useAuth();
+
+  // Redux selectors
+  const planBuilder = useAppSelector(selectPlanBuilder);
+  const activeData = useAppSelector(selectActiveSectionData);
+  const progressPercentage = useAppSelector(selectProgressPercentage);
+  const isLoading = useAppSelector(selectIsLoading);
+  const isSaving = useAppSelector(selectIsSaving);
+  const error = useAppSelector(selectError);
+  const isDirty = useAppSelector(selectIsDirty);
+
+  const { activeSection, planData, sections, businessPlanId, projectId } =
+    planBuilder;
+
+  // TODO: Replace with actual project selection logic
+  // For now, using a hardcoded project ID
+  const TEMP_PROJECT_ID = "b1241f28-82bd-439c-99ed-4112673b8a87";
+
+  // Initialize sections on mount
+  useEffect(() => {
+    dispatch(setSections(allPlanSections));
+  }, [dispatch]);
+
+  // Fetch plan builder data when project ID is set
+  useEffect(() => {
+    if (TEMP_PROJECT_ID && !projectId) {
+      dispatch(setProjectId(TEMP_PROJECT_ID));
+      dispatch(fetchPlanBuilder({ projectId: TEMP_PROJECT_ID }));
+    }
+  }, [dispatch, projectId]);
+
+  // Show error toast
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
+
+  // Auto-save functionality (optional - save every 30 seconds if dirty)
+  // useEffect(() => {
+  //   if (!isDirty) return;
+
+  //   const autoSaveTimer = setTimeout(() => {
+  //     dispatch(savePlanBuilder());
+  //     toast.success("Auto-saved");
+  //   }, 30000); // 30 seconds
+
+  //   return () => clearTimeout(autoSaveTimer);
+  // }, [isDirty, dispatch, planData]);
+
+  const handleSectionChange = (sectionId: string) => {
+    dispatch(setActiveSection(sectionId));
+  };
+
+  const handleFieldUpdate = (fieldId: string, value: string) => {
+    dispatch(
+      updateFieldValueAction({
+        sectionId: activeSection,
+        fieldId,
+        value,
+      })
+    );
+  };
+
+  const handleMarkComplete = async () => {
+    try {
+      await dispatch(markSectionCompleteAction(activeSection)).unwrap();
+      toast.success("Section marked as complete and saved!");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to mark section complete";
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleManualSave = async () => {
+    try {
+      await dispatch(savePlanBuilder()).unwrap();
+      toast.success("Plan saved successfully!");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to save plan";
+      toast.error(errorMessage);
+    }
+  };
+
+  // Show loading state
+  if (isLoading && !businessPlanId) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+          <p className="mt-2 text-gray-600">Loading plan builder...</p>
+        </div>
+      </div>
+    );
+  }
 
   const completedCount = sections.filter((s) => s.completed).length;
-  const progressPercentage = (completedCount / sections.length) * 100;
-
-  const updateFieldValue = (
-    sectionId: string,
-    fieldId: string,
-    value: string
-  ) => {
-    console.log("sectionId", sectionId);
-    console.log("fieldId", fieldId);
-    console.log("value", value);
-    setPlanData((prev) => ({
-      ...prev,
-      [sectionId]: {
-        ...prev[sectionId],
-        [fieldId]: value,
-      },
-    }));
-  };
-
-  const markSectionComplete = async (sectionId: string) => {
-    const updatedSections = sections.map((section) =>
-      section.id === sectionId ? { ...section, completed: true } : section
-    );
-
-    console.log("updatedSections", updatedSections);
-
-    console.log("supabase", supabase);
-
-    // // @ts-expect-error
-    // window.supabase = supabase;
-
-    console.log("before query", { url: import.meta.env.VITE_SUPABASE_URL });
-    const startedAt = performance.now();
-    try {
-      const { data, error } = await supabase.from("Temp").select("*");
-      console.log("after query (ms)", performance.now() - startedAt, {
-        data,
-        error,
-      });
-    } catch (e) {
-      console.error("query threw", e);
-    }
-
-    try {
-      if (!businessPlanID) {
-        // Create new business_plan
-        console.log("Creating new business plan");
-        const { data, error } = await supabase
-          .from("business_plans")
-          .insert([{ plan_builder: updatedSections }])
-          .select()
-          .single();
-
-        console.error("Error creating business plan:", error);
-        if (error) throw error;
-
-        if (data) {
-          setBusinessPlanID(data.id);
-          // Update local state with the new ID
-          setSections(updatedSections);
-        }
-      } else {
-        // Update existing business_plan
-        const { error } = await supabase
-          .from("business_plans")
-          .update({
-            plan_builder: updatedSections,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", businessPlanID);
-
-        if (error) throw error;
-
-        // Update local state
-        setSections(updatedSections);
-      }
-    } catch (error) {
-      console.error("Error saving business plan:", error);
-      // Optionally show error to user
-    }
-  };
-
-  useEffect(() => {
-    const temp = async () => {
-      console.log("=== Starting test ===");
-      try {
-        console.log("user checking");
-
-        const { data: Temp, error } = await supabase.from("Temp").select("*");
-
-        // const { data, error } = await supabase.auth.getSession();
-        console.log("data;;;;;;", Temp, error);
-      } catch (e) {
-        console.error("user check failed:", e);
-      }
-
-      console.log("=== Test complete ===");
-    };
-
-    temp();
-  }, []);
-
-  const activeData = sections.find((s) => s.id === activeSection);
 
   return (
     <div className="space-y-6">
@@ -138,6 +148,32 @@ const PlanBuilderEnhanced: React.FC = () => {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Business Plan Builder
           </h1>
+        </div>
+        <div className="flex items-center gap-2">
+          {isDirty && (
+            <span className="text-xs text-amber-600 flex items-center gap-1">
+              <Circle className="h-2 w-2 fill-amber-600" />
+              Unsaved changes
+            </span>
+          )}
+          <Button
+            onClick={handleManualSave}
+            disabled={isSaving || !isDirty}
+            variant="outline"
+            size="sm"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save
+              </>
+            )}
+          </Button>
         </div>
       </div>
 
@@ -151,7 +187,7 @@ const PlanBuilderEnhanced: React.FC = () => {
               {sections.map((section) => (
                 <button
                   key={section.id}
-                  onClick={() => setActiveSection(section.id)}
+                  onClick={() => handleSectionChange(section.id)}
                   className={`w-full flex items-center justify-between p-3 rounded-lg transition-colors ${
                     activeSection === section.id
                       ? "bg-blue-50 border border-blue-200"
@@ -213,13 +249,13 @@ const PlanBuilderEnhanced: React.FC = () => {
                     <Textarea
                       id={field.id}
                       placeholder={field.placeholder}
-                      value={planData[activeSection]?.[field.id] || ""}
+                      value={
+                        typeof planData[activeSection]?.[field.id] === "string"
+                          ? (planData[activeSection][field.id] as string)
+                          : ""
+                      }
                       onChange={(e) =>
-                        updateFieldValue(
-                          activeSection,
-                          field.id,
-                          e.target.value
-                        )
+                        handleFieldUpdate(field.id, e.target.value)
                       }
                       rows={4}
                     />
@@ -227,13 +263,13 @@ const PlanBuilderEnhanced: React.FC = () => {
                     <Input
                       id={field.id}
                       placeholder={field.placeholder}
-                      value={planData[activeSection]?.[field.id] || ""}
+                      value={
+                        typeof planData[activeSection]?.[field.id] === "string"
+                          ? (planData[activeSection][field.id] as string)
+                          : ""
+                      }
                       onChange={(e) =>
-                        updateFieldValue(
-                          activeSection,
-                          field.id,
-                          e.target.value
-                        )
+                        handleFieldUpdate(field.id, e.target.value)
                       }
                     />
                   )}
@@ -241,14 +277,33 @@ const PlanBuilderEnhanced: React.FC = () => {
               ))}
 
               <div className="flex justify-between pt-4">
-                <SaveDraftButton
-                  moduleKey="planBuilder"
-                  moduleData={planData[activeSection] || {}}
-                />
                 <Button
-                  onClick={() => markSectionComplete(activeSection)}
+                  onClick={handleManualSave}
+                  disabled={isSaving || !isDirty}
+                  variant="outline"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Draft
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={handleMarkComplete}
+                  disabled={isSaving}
                   className="bg-green-600 hover:bg-green-700"
                 >
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                  )}
                   Mark Complete
                 </Button>
               </div>
