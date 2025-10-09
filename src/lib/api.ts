@@ -6,6 +6,7 @@ import {
   Project,
   ProjectCollaborator,
   BusinessPlan,
+  SocialBusinessCanvas,
   MarketAssumptions,
   PricingScenario,
   FinancialModel,
@@ -238,6 +239,71 @@ export const businessPlanApi = {
       .from("business_plans")
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+};
+
+// Social Business Canvas API
+export const socialCanvasApi = {
+  async getByProjectId(projectId: string): Promise<SocialBusinessCanvas | null> {
+    const { data, error } = await supabase
+      .from("social_business_canvas")
+      .select("*")
+      .eq("project_id", projectId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "not found"
+    return data;
+  },
+
+  async create(
+    canvas: Omit<SocialBusinessCanvas, "id" | "created_at" | "updated_at">
+  ): Promise<SocialBusinessCanvas> {
+    const { data, error } = await supabase
+      .from("social_business_canvas")
+      .insert(canvas)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async update(
+    id: string,
+    updates: Partial<SocialBusinessCanvas>
+  ): Promise<SocialBusinessCanvas> {
+    const { data, error } = await supabase
+      .from("social_business_canvas")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async upsertByProjectId(
+    projectId: string,
+    canvasData: Partial<SocialBusinessCanvas>
+  ): Promise<SocialBusinessCanvas> {
+    const { data, error } = await supabase
+      .from("social_business_canvas")
+      .upsert(
+        {
+          project_id: projectId,
+          ...canvasData,
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'project_id',
+        }
+      )
       .select()
       .single();
 

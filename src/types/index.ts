@@ -77,6 +77,28 @@ export interface BusinessPlan {
   updated_at: string;
 }
 
+export interface SocialBusinessCanvas {
+  id: string;
+  project_id: string;
+  social_mission?: string;
+  key_delivery_partners?: string;
+  key_activities?: string;
+  social_impact_measurement?: string;
+  social_value_proposition?: string;
+  relationships?: string;
+  impact_gap_analysis?: string;
+  key_stakeholders?: string;
+  channels?: string;
+  competitors_competition?: string;
+  key_resources?: string;
+  pestel_analysis?: string;
+  costs?: string;
+  surplus?: string;
+  revenue?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface MarketAssumptions {
   id: string;
   project_id: string;

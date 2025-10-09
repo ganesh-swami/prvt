@@ -1,38 +1,108 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { CustomTooltip } from '@/components/common/CustomTooltip';
-import { ExportOptions } from '@/components/common/ExportOptions';
-import SaveButtons from '@/components/common/SaveButtons';
-import SocialBusinessCanvasPart2 from './SocialBusinessCanvasPart2';
-import SocialCanvasVisualization from './SocialCanvasVisualization';
-import SocialCanvasSummary from './SocialCanvasSummary';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Target, TrendingUp, Shield, Lightbulb, Globe, DollarSign, Activity, Building, Eye, Heart, Handshake, Zap } from 'lucide-react';
-const SocialBusinessCanvas: React.FC = () => {
-  const [canvasData, setCanvasData] = useState({
-    socialMission: '',
-    keyDeliveryPartners: '',
-    keyActivities: '',
-    socialImpactMeasurement: '',
-    socialValueProposition: '',
-    relationships: '',
-    impactGapAnalysis: '',
-    keyStakeholders: '',
-    channels: '',
-    competitorsCompetition: '',
-    keyResources: '',
-    pestelAnalysis: '',
-    costs: '',
-    surplus: '',
-    revenue: ''
-  });
+import React, { useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { CustomTooltip } from "@/components/common/CustomTooltip";
+import { ExportOptions } from "@/components/common/ExportOptions";
+import SocialBusinessCanvasPart2 from "./SocialBusinessCanvasPart2";
+import SocialCanvasVisualization from "./SocialCanvasVisualization";
+import SocialCanvasSummary from "./SocialCanvasSummary";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Users,
+  Target,
+  TrendingUp,
+  Shield,
+  Lightbulb,
+  Globe,
+  DollarSign,
+  Loader2,
+  Save,
+  Circle,
+} from "lucide-react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  fetchSocialCanvas,
+  saveSocialCanvas,
+  setProjectId,
+  updateField,
+  selectCanvasData,
+  selectIsLoading,
+  selectIsSaving,
+  selectError,
+  selectIsDirty,
+  selectCompletionPercentage,
+  type SocialCanvasData,
+} from "@/store/slices/socialCanvasSlice";
+import { toast } from "sonner";
 
-  const handleInputChange = (field: string, value: string) => {
-    setCanvasData(prev => ({ ...prev, [field]: value }));
+const SocialBusinessCanvas: React.FC = () => {
+  const dispatch = useAppDispatch();
+
+  // Redux selectors
+  const canvasData = useAppSelector(selectCanvasData);
+  const isLoading = useAppSelector(selectIsLoading);
+  const isSaving = useAppSelector(selectIsSaving);
+  const error = useAppSelector(selectError);
+  const isDirty = useAppSelector(selectIsDirty);
+  const completionPercentage = useAppSelector(selectCompletionPercentage);
+
+  // TODO: Replace with actual project selection logic
+  const TEMP_PROJECT_ID = "b1241f28-82bd-439c-99ed-4112673b8a87";
+
+  // Initialize and fetch data
+  useEffect(() => {
+    if (TEMP_PROJECT_ID) {
+      dispatch(setProjectId(TEMP_PROJECT_ID));
+      dispatch(fetchSocialCanvas({ projectId: TEMP_PROJECT_ID }));
+    }
+  }, [dispatch]);
+
+  // Show error toast
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
+
+  // Auto-save functionality (optional - save every 30 seconds if dirty)
+  useEffect(() => {
+    if (!isDirty) return;
+
+    const autoSaveTimer = setTimeout(() => {
+      dispatch(saveSocialCanvas());
+      toast.success("Auto-saved");
+    }, 30000); // 30 seconds
+
+    return () => clearTimeout(autoSaveTimer);
+  }, [isDirty, dispatch]);
+
+  const handleInputChange = (field: keyof SocialCanvasData, value: string) => {
+    dispatch(updateField({ field, value }));
   };
+
+  const handleManualSave = async () => {
+    try {
+      await dispatch(saveSocialCanvas()).unwrap();
+      toast.success("Social canvas saved successfully!");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to save social canvas";
+      toast.error(errorMessage);
+    }
+  };
+
+  // Show loading state
+  if (isLoading && !canvasData.socialMission) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-green-600" />
+          <p className="mt-2 text-gray-600">Loading social canvas...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -42,17 +112,44 @@ const SocialBusinessCanvas: React.FC = () => {
             <Users className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Social Business Model Canvas</h1>
-            <p className="text-gray-600">Design and visualize your social impact business model</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Social Business Model Canvas
+            </h1>
+            <p className="text-gray-600">
+              Design and visualize your social impact business model •{" "}
+              <span className="font-semibold text-green-600">
+                {completionPercentage}% Complete
+              </span>
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <SaveButtons 
-            moduleKey="social-canvas" 
-            moduleData={canvasData}
-          />
-          <ExportOptions 
-            data={canvasData} 
+          {isDirty && (
+            <span className="text-xs text-amber-600 flex items-center gap-1">
+              <Circle className="h-2 w-2 fill-amber-600" />
+              Unsaved changes
+            </span>
+          )}
+          <Button
+            onClick={handleManualSave}
+            disabled={isSaving || !isDirty}
+            variant="outline"
+            size="sm"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save
+              </>
+            )}
+          </Button>
+          <ExportOptions
+            data={canvasData}
             filename="social-business-canvas"
             moduleName="Social Business Canvas"
           />
@@ -73,7 +170,9 @@ const SocialBusinessCanvas: React.FC = () => {
             <Textarea
               placeholder="e.g., Empower rural women through sustainable microfinance solutions"
               value={canvasData.socialMission}
-              onChange={(e) => handleInputChange('socialMission', e.target.value)}
+              onChange={(e) =>
+                handleInputChange("socialMission", e.target.value)
+              }
               className="min-h-20"
             />
           </CardContent>
@@ -92,7 +191,9 @@ const SocialBusinessCanvas: React.FC = () => {
             <Textarea
               placeholder="e.g., Local NGOs, community leaders, microfinance institutions, technology partners"
               value={canvasData.keyDeliveryPartners}
-              onChange={(e) => handleInputChange('keyDeliveryPartners', e.target.value)}
+              onChange={(e) =>
+                handleInputChange("keyDeliveryPartners", e.target.value)
+              }
               className="min-h-32"
             />
           </CardContent>
@@ -111,7 +212,9 @@ const SocialBusinessCanvas: React.FC = () => {
             <Textarea
               placeholder="e.g., Training programs, loan processing, impact monitoring, community outreach"
               value={canvasData.keyActivities}
-              onChange={(e) => handleInputChange('keyActivities', e.target.value)}
+              onChange={(e) =>
+                handleInputChange("keyActivities", e.target.value)
+              }
               className="min-h-32"
             />
           </CardContent>
@@ -130,7 +233,9 @@ const SocialBusinessCanvas: React.FC = () => {
             <Textarea
               placeholder="e.g., Number of women trained, income increase %, loan repayment rates, community satisfaction scores"
               value={canvasData.socialImpactMeasurement}
-              onChange={(e) => handleInputChange('socialImpactMeasurement', e.target.value)}
+              onChange={(e) =>
+                handleInputChange("socialImpactMeasurement", e.target.value)
+              }
               className="min-h-32"
             />
           </CardContent>
@@ -151,7 +256,9 @@ const SocialBusinessCanvas: React.FC = () => {
             <Textarea
               placeholder="e.g., Accessible financial services that enable economic empowerment and poverty reduction in underserved communities"
               value={canvasData.socialValueProposition}
-              onChange={(e) => handleInputChange('socialValueProposition', e.target.value)}
+              onChange={(e) =>
+                handleInputChange("socialValueProposition", e.target.value)
+              }
               className="min-h-32"
             />
           </CardContent>
@@ -170,7 +277,9 @@ const SocialBusinessCanvas: React.FC = () => {
             <Textarea
               placeholder="e.g., Personal mentorship, peer support groups, digital self-service platform, community networks"
               value={canvasData.relationships}
-              onChange={(e) => handleInputChange('relationships', e.target.value)}
+              onChange={(e) =>
+                handleInputChange("relationships", e.target.value)
+              }
               className="min-h-32"
             />
           </CardContent>
@@ -178,9 +287,9 @@ const SocialBusinessCanvas: React.FC = () => {
       </div>
 
       {/* Include Part 2 Components */}
-      <SocialBusinessCanvasPart2 
-        canvasData={canvasData} 
-        handleInputChange={handleInputChange} 
+      <SocialBusinessCanvasPart2
+        canvasData={canvasData}
+        handleInputChange={handleInputChange}
       />
 
       {/* Financial Sections */}
@@ -198,7 +307,9 @@ const SocialBusinessCanvas: React.FC = () => {
             <Textarea
               placeholder="e.g., Political: Government support for financial inclusion; Economic: Rural income volatility; Social: Cultural attitudes toward women's financial independence; Technological: Mobile penetration rates; Environmental: Climate change impact on agriculture; Legal: Microfinance regulations"
               value={canvasData.pestelAnalysis}
-              onChange={(e) => handleInputChange('pestelAnalysis', e.target.value)}
+              onChange={(e) =>
+                handleInputChange("pestelAnalysis", e.target.value)
+              }
               className="min-h-32"
             />
           </CardContent>
@@ -219,7 +330,7 @@ const SocialBusinessCanvas: React.FC = () => {
             <Textarea
               placeholder="e.g., Staff salaries, training programs, technology platform, loan capital, marketing, compliance, impact measurement"
               value={canvasData.costs}
-              onChange={(e) => handleInputChange('costs', e.target.value)}
+              onChange={(e) => handleInputChange("costs", e.target.value)}
               className="min-h-32"
             />
           </CardContent>
@@ -238,7 +349,7 @@ const SocialBusinessCanvas: React.FC = () => {
             <Textarea
               placeholder="e.g., 70% reinvested in program expansion, 20% for operational reserves, 10% donated to partner NGOs"
               value={canvasData.surplus}
-              onChange={(e) => handleInputChange('surplus', e.target.value)}
+              onChange={(e) => handleInputChange("surplus", e.target.value)}
               className="min-h-32"
             />
           </CardContent>
@@ -257,7 +368,7 @@ const SocialBusinessCanvas: React.FC = () => {
             <Textarea
               placeholder="e.g., Interest from microloans, training fees, impact investor funding, government grants, corporate sponsorships"
               value={canvasData.revenue}
-              onChange={(e) => handleInputChange('revenue', e.target.value)}
+              onChange={(e) => handleInputChange("revenue", e.target.value)}
               className="min-h-32"
             />
           </CardContent>

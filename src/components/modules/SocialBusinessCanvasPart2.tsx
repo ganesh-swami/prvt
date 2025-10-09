@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { CustomTooltip } from '@/components/common/CustomTooltip';
 import { Users, Target, Shield, DollarSign, TrendingUp, Globe, Activity, Building, Eye, Heart, Handshake, Zap } from 'lucide-react';
+import type { SocialCanvasData } from '@/store/slices/socialCanvasSlice';
 
 interface SocialBusinessCanvasPart2Props {
-  canvasData: any;
-  handleInputChange: (field: string, value: string) => void;
+  canvasData: SocialCanvasData;
+  handleInputChange: (field: keyof SocialCanvasData, value: string) => void;
 }
 
 const SocialBusinessCanvasPart2: React.FC<SocialBusinessCanvasPart2Props> = ({

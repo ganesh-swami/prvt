@@ -93,6 +93,35 @@ CREATE TABLE IF NOT EXISTS public.business_plans (
   CONSTRAINT business_plans_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE
 );
 
+-- Social Business Canvas table
+CREATE TABLE IF NOT EXISTS public.social_business_canvas (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL,
+  social_mission text,
+  key_delivery_partners text,
+  key_activities text,
+  social_impact_measurement text,
+  social_value_proposition text,
+  relationships text,
+  impact_gap_analysis text,
+  key_stakeholders text,
+  channels text,
+  competitors_competition text,
+  key_resources text,
+  pestel_analysis text,
+  costs text,
+  surplus text,
+  revenue text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT social_business_canvas_pkey PRIMARY KEY (id),
+  CONSTRAINT social_business_canvas_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE,
+  CONSTRAINT social_business_canvas_project_id_unique UNIQUE (project_id)
+);
+
+-- Create index for faster project lookups
+CREATE INDEX IF NOT EXISTS idx_social_business_canvas_project_id ON public.social_business_canvas(project_id);
+
 -- Market assumptions table
 CREATE TABLE IF NOT EXISTS public.market_assumptions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -318,6 +347,7 @@ $$ LANGUAGE plpgsql;
 -- Enable Row Level Security
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE business_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE social_business_canvas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE market_assumptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pricing_scenarios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE financial_models ENABLE ROW LEVEL SECURITY;
@@ -363,6 +393,27 @@ CREATE POLICY "Users can view business plans for their projects" ON business_pla
 
 DROP POLICY IF EXISTS "Users can manage business plans for their projects" ON business_plans;
 CREATE POLICY "Users can manage business plans for their projects" ON business_plans
+  FOR ALL USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  );
+
+-- Social Business Canvas policies
+DROP POLICY IF EXISTS "Users can view social canvas for their projects" ON social_business_canvas;
+CREATE POLICY "Users can view social canvas for their projects" ON social_business_canvas
+  FOR SELECT USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can manage social canvas for their projects" ON social_business_canvas;
+CREATE POLICY "Users can manage social canvas for their projects" ON social_business_canvas
   FOR ALL USING (
     project_id IN (
       SELECT id FROM projects 
