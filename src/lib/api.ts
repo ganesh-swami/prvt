@@ -7,6 +7,7 @@ import {
   ProjectCollaborator,
   BusinessPlan,
   SocialBusinessCanvas,
+  ProblemTree,
   MarketAssumptions,
   PricingScenario,
   FinancialModel,
@@ -249,14 +250,16 @@ export const businessPlanApi = {
 
 // Social Business Canvas API
 export const socialCanvasApi = {
-  async getByProjectId(projectId: string): Promise<SocialBusinessCanvas | null> {
+  async getByProjectId(
+    projectId: string
+  ): Promise<SocialBusinessCanvas | null> {
     const { data, error } = await supabase
       .from("social_business_canvas")
       .select("*")
       .eq("project_id", projectId)
       .single();
 
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "not found"
+    if (error && error.code !== "PGRST116") throw error; // PGRST116 is "not found"
     return data;
   },
 
@@ -301,7 +304,72 @@ export const socialCanvasApi = {
           updated_at: new Date().toISOString(),
         },
         {
-          onConflict: 'project_id',
+          onConflict: "project_id",
+        }
+      )
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+};
+
+// Problem Tree API
+export const problemTreeApi = {
+  async getByProjectId(projectId: string): Promise<ProblemTree | null> {
+    const { data, error } = await supabase
+      .from("problem_tree")
+      .select("*")
+      .eq("project_id", projectId)
+      .single();
+
+    if (error && error.code !== "PGRST116") throw error; // PGRST116 is "not found"
+    return data;
+  },
+
+  async create(
+    tree: Omit<ProblemTree, "id" | "created_at" | "updated_at">
+  ): Promise<ProblemTree> {
+    const { data, error } = await supabase
+      .from("problem_tree")
+      .insert(tree)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async update(
+    id: string,
+    updates: Partial<ProblemTree>
+  ): Promise<ProblemTree> {
+    const { data, error } = await supabase
+      .from("problem_tree")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async upsertByProjectId(
+    projectId: string,
+    treeData: Partial<ProblemTree>
+  ): Promise<ProblemTree> {
+    const { data, error } = await supabase
+      .from("problem_tree")
+      .upsert(
+        {
+          project_id: projectId,
+          ...treeData,
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: "project_id",
         }
       )
       .select()

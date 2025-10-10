@@ -52,8 +52,8 @@ const FIELD_GROUPS = [
     id: "core",
     title: "Core Purpose & Value",
     icon: Heart,
-    color: "text-rose-600",
-    bgColor: "bg-rose-50",
+    color: "text-rose-800",
+    bgColor: "bg-rose-50/50",
     borderColor: "border-rose-200",
     description: "Define your mission, value proposition, and relationships",
     fields: [
@@ -96,8 +96,8 @@ const FIELD_GROUPS = [
     id: "operations",
     title: "Operations & Resources",
     icon: Briefcase,
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
+    color: "text-blue-800",
+    bgColor: "bg-blue-50/50",
     borderColor: "border-blue-200",
     description: "Define your key partners, activities, and resources",
     fields: [
@@ -140,8 +140,8 @@ const FIELD_GROUPS = [
     id: "market",
     title: "Market & Impact",
     icon: BarChart3,
-    color: "text-purple-600",
-    bgColor: "bg-purple-50",
+    color: "text-purple-800",
+    bgColor: "bg-purple-50/50",
     borderColor: "border-purple-200",
     description: "Define your market, stakeholders, and impact measurement",
     fields: [
@@ -206,8 +206,8 @@ const FIELD_GROUPS = [
     id: "financial",
     title: "Financial & Environment",
     icon: DollarSign,
-    color: "text-green-600",
-    bgColor: "bg-green-50",
+    color: "text-green-800",
+    bgColor: "bg-green-50/50",
     borderColor: "border-green-200",
     description: "Define your financial model and environmental factors",
     fields: [
@@ -455,7 +455,7 @@ const SocialBusinessCanvasImproved: React.FC = () => {
                         </div>
                       </div>
                     </AccordionTrigger>
-                    <AccordionContent className="px-6 py-4 bg-white">
+                    <AccordionContent className={`px-6 py-4 ${group.bgColor}`}>
                       <div className="space-y-6">
                         {group.fields.map((field) => {
                           const FieldIcon = field.icon;

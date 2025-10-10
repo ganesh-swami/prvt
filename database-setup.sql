@@ -122,6 +122,28 @@ CREATE TABLE IF NOT EXISTS public.social_business_canvas (
 -- Create index for faster project lookups
 CREATE INDEX IF NOT EXISTS idx_social_business_canvas_project_id ON public.social_business_canvas(project_id);
 
+-- Problem Tree table
+CREATE TABLE IF NOT EXISTS public.problem_tree (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL,
+  problem_impact_society text,
+  harms_direct_beneficiaries text,
+  effects_involved_parties text,
+  main_problem text,
+  problem_position text,
+  main_causes text,
+  key_insights text,
+  strategic_implications text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT problem_tree_pkey PRIMARY KEY (id),
+  CONSTRAINT problem_tree_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE,
+  CONSTRAINT problem_tree_project_id_unique UNIQUE (project_id)
+);
+
+-- Create index for faster project lookups
+CREATE INDEX IF NOT EXISTS idx_problem_tree_project_id ON public.problem_tree(project_id);
+
 -- Market assumptions table
 CREATE TABLE IF NOT EXISTS public.market_assumptions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -348,6 +370,7 @@ $$ LANGUAGE plpgsql;
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE business_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE social_business_canvas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE problem_tree ENABLE ROW LEVEL SECURITY;
 ALTER TABLE market_assumptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pricing_scenarios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE financial_models ENABLE ROW LEVEL SECURITY;
@@ -414,6 +437,27 @@ CREATE POLICY "Users can view social canvas for their projects" ON social_busine
 
 DROP POLICY IF EXISTS "Users can manage social canvas for their projects" ON social_business_canvas;
 CREATE POLICY "Users can manage social canvas for their projects" ON social_business_canvas
+  FOR ALL USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  );
+
+-- Problem Tree policies
+DROP POLICY IF EXISTS "Users can view problem tree for their projects" ON problem_tree;
+CREATE POLICY "Users can view problem tree for their projects" ON problem_tree
+  FOR SELECT USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can manage problem tree for their projects" ON problem_tree;
+CREATE POLICY "Users can manage problem tree for their projects" ON problem_tree
   FOR ALL USING (
     project_id IN (
       SELECT id FROM projects 

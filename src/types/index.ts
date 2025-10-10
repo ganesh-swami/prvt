@@ -5,7 +5,7 @@ export interface User {
   email: string;
   name: string;
   avatar_url?: string;
-  subscription_tier: 'free' | 'pro' | 'business' | 'enterprise';
+  subscription_tier: "free" | "pro" | "business" | "enterprise";
   created_at: string;
   updated_at: string;
   notification_preferences?: {
@@ -35,7 +35,7 @@ export interface Organization {
 export interface OrgMember {
   org_id: string;
   user_id: string;
-  role: 'owner' | 'admin' | 'member';
+  role: "owner" | "admin" | "member";
   created_at: string;
 }
 
@@ -45,7 +45,7 @@ export interface Project {
   description?: string;
   owner_id: string;
   template_id?: string;
-  status: 'draft' | 'active' | 'archived';
+  status: "draft" | "active" | "archived";
   created_at: string;
   updated_at: string;
   module_data?: Record<string, any>;
@@ -55,7 +55,7 @@ export interface ProjectCollaborator {
   id: string;
   project_id: string;
   user_id: string;
-  role: 'owner' | 'editor' | 'viewer';
+  role: "owner" | "editor" | "viewer";
   created_at: string;
 }
 
@@ -99,6 +99,21 @@ export interface SocialBusinessCanvas {
   updated_at: string;
 }
 
+export interface ProblemTree {
+  id: string;
+  project_id: string;
+  problem_impact_society?: string;
+  harms_direct_beneficiaries?: string;
+  effects_involved_parties?: string;
+  main_problem?: string;
+  problem_position?: string;
+  main_causes?: string;
+  key_insights?: string;
+  strategic_implications?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface MarketAssumptions {
   id: string;
   project_id: string;
@@ -107,7 +122,7 @@ export interface MarketAssumptions {
   som?: number;
   market_growth_rate?: number;
   assumptions?: any[];
-  validation_status: 'unvalidated' | 'testing' | 'validated';
+  validation_status: "unvalidated" | "testing" | "validated";
   created_at: string;
   updated_at: string;
 }
@@ -116,7 +131,7 @@ export interface PricingScenario {
   id: string;
   project_id: string;
   name: string;
-  pricing_model?: 'subscription' | 'one-time' | 'usage-based' | 'freemium';
+  pricing_model?: "subscription" | "one-time" | "usage-based" | "freemium";
   tiers?: any[];
   assumptions?: Record<string, any>;
   price_points?: any;
@@ -174,8 +189,8 @@ export interface Task {
   title: string;
   description?: string;
   assignee_id?: string;
-  status: 'todo' | 'in_progress' | 'done';
-  priority: 'low' | 'medium' | 'high';
+  status: "todo" | "in_progress" | "done";
+  priority: "low" | "medium" | "high";
   due_date?: string;
   created_at: string;
   updated_at: string;
@@ -249,7 +264,7 @@ export interface Template {
   blueprint: Record<string, any>;
   price_cents: number;
   creator_id?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   is_featured: boolean;
   downloads: number;
   rating: number;
@@ -277,7 +292,7 @@ export interface PricePoint {
 }
 
 export interface FinancialScenario {
-  name: 'best_case' | 'base_case' | 'worst_case';
+  name: "best_case" | "base_case" | "worst_case";
   projections: FinancialProjection[];
 }
 

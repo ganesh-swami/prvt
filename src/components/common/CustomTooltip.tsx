@@ -1,6 +1,11 @@
-import React from 'react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { HelpCircle, Info } from 'lucide-react';
+import React from "react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { HelpCircle, Info } from "lucide-react";
 
 interface CustomTooltipProps {
   title: string;
@@ -8,7 +13,7 @@ interface CustomTooltipProps {
   explanation?: string;
   justification?: string;
   children?: React.ReactNode;
-  variant?: 'info' | 'help';
+  variant?: "info" | "help";
 }
 
 export const CustomTooltip: React.FC<CustomTooltipProps> = ({
@@ -17,9 +22,9 @@ export const CustomTooltip: React.FC<CustomTooltipProps> = ({
   explanation,
   justification,
   children,
-  variant = 'help'
+  variant = "help",
 }) => {
-  const Icon = variant === 'info' ? Info : HelpCircle;
+  const Icon = variant === "info" ? Info : HelpCircle;
 
   return (
     <TooltipProvider>
@@ -35,13 +40,17 @@ export const CustomTooltip: React.FC<CustomTooltipProps> = ({
             <p className="text-xs text-gray-600">{description}</p>
             {explanation && (
               <div>
-                <p className="text-xs font-medium text-blue-600 mb-1">Explanation:</p>
+                <p className="text-xs font-medium text-blue-600 mb-1">
+                  Explanation:
+                </p>
                 <p className="text-xs text-gray-600">{explanation}</p>
               </div>
             )}
             {justification && (
               <div>
-                <p className="text-xs font-medium text-green-600 mb-1">Why it matters:</p>
+                <p className="text-xs font-medium text-green-600 mb-1">
+                  Why it matters:
+                </p>
                 <p className="text-xs text-gray-600">{justification}</p>
               </div>
             )}

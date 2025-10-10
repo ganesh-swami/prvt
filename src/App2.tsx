@@ -20,7 +20,7 @@ function Page() {
 
   return (
     <div>
-      <h1>hhhhhhhhhhhhhhhhhhhh</h1>
+      <h1>Just to test if todo is working or not</h1>
       {todos.map((todo) => (
         <li key={todo.id}>{todo.test}</li>
       ))}

@@ -1,19 +1,22 @@
-import { configureStore } from '@reduxjs/toolkit';
-import planBuilderReducer from './slices/planBuilderSlice';
-import socialCanvasReducer from './slices/socialCanvasSlice';
+import { configureStore } from "@reduxjs/toolkit";
+import planBuilderReducer from "./slices/planBuilderSlice";
+import socialCanvasReducer from "./slices/socialCanvasSlice";
+import problemTreeReducer from "./slices/problemTreeSlice";
 
 export const store = configureStore({
   reducer: {
     planBuilder: planBuilderReducer,
     socialCanvas: socialCanvasReducer,
+    problemTree: problemTreeReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
         // Ignore these action types
         ignoredActions: [
-          'planBuilder/fetchPlanBuilder/fulfilled',
-          'socialCanvas/fetchSocialCanvas/fulfilled',
+          "planBuilder/fetchPlanBuilder/fulfilled",
+          "socialCanvas/fetchSocialCanvas/fulfilled",
+          "problemTree/fetchProblemTree/fulfilled",
         ],
       },
     }),
