@@ -8,6 +8,10 @@ import {
   BusinessPlan,
   SocialBusinessCanvas,
   ProblemTree,
+  Stakeholder,
+  EcosystemMapTimeline,
+  EcosystemMapSharedNote,
+  EcosystemMapTask,
   MarketAssumptions,
   PricingScenario,
   FinancialModel,
@@ -377,6 +381,225 @@ export const problemTreeApi = {
 
     if (error) throw error;
     return data;
+  },
+};
+
+// Stakeholders API
+export const stakeholdersApi = {
+  async getAllByProjectId(projectId: string): Promise<Stakeholder[]> {
+    const { data, error } = await supabase
+      .from("stakeholders")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async create(
+    stakeholder: Omit<Stakeholder, "id" | "created_at" | "updated_at">
+  ): Promise<Stakeholder> {
+    const { data, error } = await supabase
+      .from("stakeholders")
+      .insert(stakeholder)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async update(
+    id: string,
+    updates: Partial<Stakeholder>
+  ): Promise<Stakeholder> {
+    const { data, error } = await supabase
+      .from("stakeholders")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase.from("stakeholders").delete().eq("id", id);
+
+    if (error) throw error;
+  },
+};
+
+// Ecosystem Map Timeline API
+export const ecosystemTimelineApi = {
+  async getAllByProjectId(projectId: string): Promise<EcosystemMapTimeline[]> {
+    const { data, error } = await supabase
+      .from("ecosystem_map_timeline")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("date", { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async create(
+    timeline: Omit<EcosystemMapTimeline, "id" | "created_at" | "updated_at">
+  ): Promise<EcosystemMapTimeline> {
+    const { data, error } = await supabase
+      .from("ecosystem_map_timeline")
+      .insert(timeline)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async update(
+    id: string,
+    updates: Partial<EcosystemMapTimeline>
+  ): Promise<EcosystemMapTimeline> {
+    const { data, error } = await supabase
+      .from("ecosystem_map_timeline")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase
+      .from("ecosystem_map_timeline")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+  },
+};
+
+// Ecosystem Map Shared Notes API
+export const ecosystemNotesApi = {
+  async getAllByProjectId(
+    projectId: string
+  ): Promise<EcosystemMapSharedNote[]> {
+    const { data, error } = await supabase
+      .from("ecosystem_map_shared_note")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async create(
+    note: Omit<EcosystemMapSharedNote, "id" | "created_at" | "updated_at">
+  ): Promise<EcosystemMapSharedNote> {
+    const { data, error } = await supabase
+      .from("ecosystem_map_shared_note")
+      .insert(note)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async update(
+    id: string,
+    updates: Partial<EcosystemMapSharedNote>
+  ): Promise<EcosystemMapSharedNote> {
+    const { data, error } = await supabase
+      .from("ecosystem_map_shared_note")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase
+      .from("ecosystem_map_shared_note")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+  },
+};
+
+// Ecosystem Map Tasks/Reminders API
+export const ecosystemTasksApi = {
+  async getAllByProjectId(projectId: string): Promise<EcosystemMapTask[]> {
+    const { data, error } = await supabase
+      .from("ecosystem_map_task")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("due_date", { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async create(
+    task: Omit<EcosystemMapTask, "id" | "created_at" | "updated_at">
+  ): Promise<EcosystemMapTask> {
+    const { data, error } = await supabase
+      .from("ecosystem_map_task")
+      .insert(task)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async update(
+    id: string,
+    updates: Partial<EcosystemMapTask>
+  ): Promise<EcosystemMapTask> {
+    const { data, error } = await supabase
+      .from("ecosystem_map_task")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async complete(id: string): Promise<EcosystemMapTask> {
+    const { data, error } = await supabase
+      .from("ecosystem_map_task")
+      .update({
+        is_completed: true,
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase
+      .from("ecosystem_map_task")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
   },
 };
 

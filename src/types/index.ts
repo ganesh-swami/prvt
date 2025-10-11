@@ -114,6 +114,69 @@ export interface ProblemTree {
   updated_at: string;
 }
 
+export interface Stakeholder {
+  id: string;
+  project_id: string;
+  name: string;
+  type?: string;
+  influence?: 'High' | 'Medium' | 'Low';
+  interest?: 'High' | 'Medium' | 'Low';
+  relationship?: 'Supportive' | 'Neutral' | 'Opposing';
+  relationship_strength?: number; // 1-10
+  engagement_level?: 'Active' | 'Moderate' | 'Minimal' | 'None';
+  last_contact?: string;
+  next_action?: string;
+  risk_level?: 'High' | 'Medium' | 'Low';
+  description?: string;
+  contact_info?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EcosystemMapTimeline {
+  id: string;
+  project_id: string;
+  stakeholder_id: string;
+  date: string;
+  type?: 'Meeting' | 'Email' | 'Call' | 'Event' | 'Milestone';
+  description: string;
+  outcome?: 'Positive' | 'Neutral' | 'Negative';
+  relationship_change?: number; // -5 to +5
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EcosystemMapSharedNote {
+  id: string;
+  project_id: string;
+  stakeholder_id: string;
+  content: string;
+  created_by?: string;
+  created_by_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EcosystemMapTask {
+  id: string;
+  project_id: string;
+  stakeholder_id: string;
+  type?: 'follow-up' | 'meeting' | 'check-in' | 'deadline';
+  title: string;
+  description?: string;
+  due_date: string;
+  frequency?: 'once' | 'weekly' | 'monthly' | 'quarterly';
+  priority?: 'high' | 'medium' | 'low';
+  is_active: boolean;
+  is_completed: boolean;
+  completed_at?: string;
+  assigned_to?: string;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface MarketAssumptions {
   id: string;
   project_id: string;

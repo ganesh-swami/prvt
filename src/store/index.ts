@@ -2,12 +2,14 @@ import { configureStore } from "@reduxjs/toolkit";
 import planBuilderReducer from "./slices/planBuilderSlice";
 import socialCanvasReducer from "./slices/socialCanvasSlice";
 import problemTreeReducer from "./slices/problemTreeSlice";
+import ecosystemMapReducer from "./slices/stakeholdersSlice";
 
 export const store = configureStore({
   reducer: {
     planBuilder: planBuilderReducer,
     socialCanvas: socialCanvasReducer,
     problemTree: problemTreeReducer,
+    ecosystemMap: ecosystemMapReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -17,6 +19,7 @@ export const store = configureStore({
           "planBuilder/fetchPlanBuilder/fulfilled",
           "socialCanvas/fetchSocialCanvas/fulfilled",
           "problemTree/fetchProblemTree/fulfilled",
+          "ecosystemMap/fetchStakeholders/fulfilled",
         ],
       },
     }),

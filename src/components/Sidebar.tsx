@@ -212,7 +212,7 @@ export const Sidebar: React.FC = () => {
           {sidebarOpen && (
             <div>
               <h1 className="font-bold text-xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Synergize+
+                Strategize+
               </h1>
               <p className="text-xs text-gray-500">
                 Business Strategy Platform

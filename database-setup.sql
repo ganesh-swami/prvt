@@ -144,6 +144,102 @@ CREATE TABLE IF NOT EXISTS public.problem_tree (
 -- Create index for faster project lookups
 CREATE INDEX IF NOT EXISTS idx_problem_tree_project_id ON public.problem_tree(project_id);
 
+-- Stakeholders table for Ecosystem Mapping
+CREATE TABLE IF NOT EXISTS public.stakeholders (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL,
+  name text NOT NULL,
+  type text,
+  influence text CHECK (influence = ANY (ARRAY['High'::text, 'Medium'::text, 'Low'::text])),
+  interest text CHECK (interest = ANY (ARRAY['High'::text, 'Medium'::text, 'Low'::text])),
+  relationship text CHECK (relationship = ANY (ARRAY['Supportive'::text, 'Neutral'::text, 'Opposing'::text])),
+  relationship_strength integer CHECK (relationship_strength >= 1 AND relationship_strength <= 10),
+  engagement_level text CHECK (engagement_level = ANY (ARRAY['Active'::text, 'Moderate'::text, 'Minimal'::text, 'None'::text])),
+  last_contact timestamp with time zone,
+  next_action text,
+  risk_level text CHECK (risk_level = ANY (ARRAY['High'::text, 'Medium'::text, 'Low'::text])),
+  description text,
+  contact_info text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT stakeholders_pkey PRIMARY KEY (id),
+  CONSTRAINT stakeholders_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE
+);
+
+-- Create index for faster project lookups
+CREATE INDEX IF NOT EXISTS idx_stakeholders_project_id ON public.stakeholders(project_id);
+
+-- Ecosystem Map Timeline table
+CREATE TABLE IF NOT EXISTS public.ecosystem_map_timeline (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL,
+  stakeholder_id uuid NOT NULL,
+  date timestamp with time zone NOT NULL,
+  type text CHECK (type = ANY (ARRAY['Meeting'::text, 'Email'::text, 'Call'::text, 'Event'::text, 'Milestone'::text])),
+  description text NOT NULL,
+  outcome text CHECK (outcome = ANY (ARRAY['Positive'::text, 'Neutral'::text, 'Negative'::text])),
+  relationship_change integer CHECK (relationship_change >= -5 AND relationship_change <= 5),
+  created_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT ecosystem_map_timeline_pkey PRIMARY KEY (id),
+  CONSTRAINT ecosystem_map_timeline_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE,
+  CONSTRAINT ecosystem_map_timeline_stakeholder_id_fkey FOREIGN KEY (stakeholder_id) REFERENCES public.stakeholders(id) ON DELETE CASCADE,
+  CONSTRAINT ecosystem_map_timeline_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_ecosystem_map_timeline_project_id ON public.ecosystem_map_timeline(project_id);
+CREATE INDEX IF NOT EXISTS idx_ecosystem_map_timeline_stakeholder_id ON public.ecosystem_map_timeline(stakeholder_id);
+
+-- Ecosystem Map Shared Notes table
+CREATE TABLE IF NOT EXISTS public.ecosystem_map_shared_note (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL,
+  stakeholder_id uuid NOT NULL,
+  content text NOT NULL,
+  created_by uuid,
+  created_by_name text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT ecosystem_map_shared_note_pkey PRIMARY KEY (id),
+  CONSTRAINT ecosystem_map_shared_note_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE,
+  CONSTRAINT ecosystem_map_shared_note_stakeholder_id_fkey FOREIGN KEY (stakeholder_id) REFERENCES public.stakeholders(id) ON DELETE CASCADE,
+  CONSTRAINT ecosystem_map_shared_note_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_ecosystem_map_shared_note_project_id ON public.ecosystem_map_shared_note(project_id);
+CREATE INDEX IF NOT EXISTS idx_ecosystem_map_shared_note_stakeholder_id ON public.ecosystem_map_shared_note(stakeholder_id);
+
+-- Ecosystem Map Tasks/Reminders table
+CREATE TABLE IF NOT EXISTS public.ecosystem_map_task (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL,
+  stakeholder_id uuid NOT NULL,
+  type text CHECK (type = ANY (ARRAY['follow-up'::text, 'meeting'::text, 'check-in'::text, 'deadline'::text])),
+  title text NOT NULL,
+  description text,
+  due_date timestamp with time zone NOT NULL,
+  frequency text CHECK (frequency = ANY (ARRAY['once'::text, 'weekly'::text, 'monthly'::text, 'quarterly'::text])),
+  priority text CHECK (priority = ANY (ARRAY['high'::text, 'medium'::text, 'low'::text])),
+  is_active boolean DEFAULT true,
+  is_completed boolean DEFAULT false,
+  completed_at timestamp with time zone,
+  assigned_to uuid,
+  created_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT ecosystem_map_task_pkey PRIMARY KEY (id),
+  CONSTRAINT ecosystem_map_task_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE,
+  CONSTRAINT ecosystem_map_task_stakeholder_id_fkey FOREIGN KEY (stakeholder_id) REFERENCES public.stakeholders(id) ON DELETE CASCADE,
+  CONSTRAINT ecosystem_map_task_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES public.users(id) ON DELETE SET NULL,
+  CONSTRAINT ecosystem_map_task_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_ecosystem_map_task_project_id ON public.ecosystem_map_task(project_id);
+CREATE INDEX IF NOT EXISTS idx_ecosystem_map_task_stakeholder_id ON public.ecosystem_map_task(stakeholder_id);
+CREATE INDEX IF NOT EXISTS idx_ecosystem_map_task_due_date ON public.ecosystem_map_task(due_date);
+CREATE INDEX IF NOT EXISTS idx_ecosystem_map_task_is_completed ON public.ecosystem_map_task(is_completed);
+
 -- Market assumptions table
 CREATE TABLE IF NOT EXISTS public.market_assumptions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -371,6 +467,10 @@ ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE business_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE social_business_canvas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE problem_tree ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stakeholders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ecosystem_map_timeline ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ecosystem_map_shared_note ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ecosystem_map_task ENABLE ROW LEVEL SECURITY;
 ALTER TABLE market_assumptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pricing_scenarios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE financial_models ENABLE ROW LEVEL SECURITY;
@@ -458,6 +558,90 @@ CREATE POLICY "Users can view problem tree for their projects" ON problem_tree
 
 DROP POLICY IF EXISTS "Users can manage problem tree for their projects" ON problem_tree;
 CREATE POLICY "Users can manage problem tree for their projects" ON problem_tree
+  FOR ALL USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  );
+
+-- Stakeholders policies
+DROP POLICY IF EXISTS "Users can view stakeholders for their projects" ON stakeholders;
+CREATE POLICY "Users can view stakeholders for their projects" ON stakeholders
+  FOR SELECT USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can manage stakeholders for their projects" ON stakeholders;
+CREATE POLICY "Users can manage stakeholders for their projects" ON stakeholders
+  FOR ALL USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  );
+
+-- Ecosystem Map Timeline policies
+DROP POLICY IF EXISTS "Users can view timeline for their projects" ON ecosystem_map_timeline;
+CREATE POLICY "Users can view timeline for their projects" ON ecosystem_map_timeline
+  FOR SELECT USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can manage timeline for their projects" ON ecosystem_map_timeline;
+CREATE POLICY "Users can manage timeline for their projects" ON ecosystem_map_timeline
+  FOR ALL USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  );
+
+-- Ecosystem Map Shared Notes policies
+DROP POLICY IF EXISTS "Users can view notes for their projects" ON ecosystem_map_shared_note;
+CREATE POLICY "Users can view notes for their projects" ON ecosystem_map_shared_note
+  FOR SELECT USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can manage notes for their projects" ON ecosystem_map_shared_note;
+CREATE POLICY "Users can manage notes for their projects" ON ecosystem_map_shared_note
+  FOR ALL USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  );
+
+-- Ecosystem Map Tasks policies
+DROP POLICY IF EXISTS "Users can view tasks for their projects" ON ecosystem_map_task;
+CREATE POLICY "Users can view tasks for their projects" ON ecosystem_map_task
+  FOR SELECT USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can manage tasks for their projects" ON ecosystem_map_task;
+CREATE POLICY "Users can manage tasks for their projects" ON ecosystem_map_task
   FOR ALL USING (
     project_id IN (
       SELECT id FROM projects 

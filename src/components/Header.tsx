@@ -29,7 +29,7 @@ export const Header: React.FC = () => {
             <Menu className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-blue-900">Synergize+</h1>
+            <h1 className="text-2xl font-bold text-blue-900">Strategize+</h1>
             <p className="text-sm text-gray-600">
               Helping You Grow, the Simple Way
             </p>

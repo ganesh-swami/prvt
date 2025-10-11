@@ -49,7 +49,7 @@ export const LoginForm: React.FC = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-blue-900">
-            Synergize+
+            Strategize+
           </CardTitle>
           <CardDescription>Helping You Grow, the Simple Way</CardDescription>
         </CardHeader>
