@@ -152,6 +152,7 @@ export interface EcosystemMapSharedNote {
   project_id: string;
   stakeholder_id: string;
   content: string;
+  is_shared: boolean;
   created_by?: string;
   created_by_name?: string;
   created_at: string;

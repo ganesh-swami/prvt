@@ -1,116 +1,125 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageSquare, Users, CheckSquare, Share2, Plus } from 'lucide-react';
-
-interface CollaborationNote {
-  id: string;
-  stakeholderId: string;
-  author: string;
-  content: string;
-  timestamp: string;
-  isShared: boolean;
-}
-
-interface Task {
-  id: string;
-  stakeholderId: string;
-  title: string;
-  description: string;
-  assignedTo: string;
-  dueDate: string;
-  status: 'pending' | 'in-progress' | 'completed';
-  priority: 'high' | 'medium' | 'low';
-}
+import React, { useState, useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  fetchNotes,
+  addNote,
+  selectNotes,
+  selectLoadingNotes,
+  selectStakeholders,
+} from "@/store/slices/stakeholdersSlice";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  MessageSquare,
+  Users,
+  CheckSquare,
+  Share2,
+  Plus,
+  Loader2,
+  Lock,
+} from "lucide-react";
+import { toast } from "sonner";
 
 interface CollaborationToolsProps {
-  stakeholders: any[];
+  projectId: string;
 }
 
-const CollaborationTools: React.FC<CollaborationToolsProps> = ({ stakeholders }) => {
-  const [notes, setNotes] = useState<CollaborationNote[]>([
-    {
-      id: '1',
-      stakeholderId: '1',
-      author: 'John Doe',
-      content: 'Had productive meeting about policy alignment. They are supportive of our initiative.',
-      timestamp: '2024-01-15T10:30:00Z',
-      isShared: true
-    }
-  ]);
+const CollaborationTools: React.FC<CollaborationToolsProps> = ({
+  projectId,
+}) => {
+  const dispatch = useAppDispatch();
+  const notes = useAppSelector(selectNotes);
+  const stakeholders = useAppSelector(selectStakeholders);
+  const loading = useAppSelector(selectLoadingNotes);
 
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: '1',
-      stakeholderId: '2',
-      title: 'Conduct user feedback session',
-      description: 'Gather insights from target beneficiaries about current solution',
-      assignedTo: 'Sarah Smith',
-      dueDate: '2024-01-25',
-      status: 'pending',
-      priority: 'high'
-    }
-  ]);
-
-  const [newNote, setNewNote] = useState({ stakeholderId: '', content: '', isShared: false });
-  const [newTask, setNewTask] = useState({
-    stakeholderId: '', title: '', description: '', assignedTo: '', dueDate: '', priority: 'medium' as const
+  const [newNote, setNewNote] = useState({
+    stakeholderId: "",
+    content: "",
+    isShared: false,
   });
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const addNote = () => {
-    if (newNote.stakeholderId && newNote.content) {
-      const note: CollaborationNote = {
-        id: Date.now().toString(),
-        ...newNote,
-        author: 'Current User',
-        timestamp: new Date().toISOString()
-      };
-      setNotes([...notes, note]);
-      setNewNote({ stakeholderId: '', content: '', isShared: false });
+  // Fetch notes on mount
+  useEffect(() => {
+    if (projectId) {
+      dispatch(fetchNotes(projectId));
     }
+  }, [dispatch, projectId]);
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!newNote.stakeholderId) {
+      newErrors.stakeholderId = "Please select a stakeholder";
+    }
+    if (!newNote.content.trim()) {
+      newErrors.content = "Please enter note content";
+    }
+    if (newNote.content.trim().length < 5) {
+      newErrors.content = "Note must be at least 5 characters";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const addTask = () => {
-    if (newTask.stakeholderId && newTask.title) {
-      const task: Task = {
-        id: Date.now().toString(),
-        ...newTask,
-        status: 'pending'
-      };
-      setTasks([...tasks, task]);
-      setNewTask({ stakeholderId: '', title: '', description: '', assignedTo: '', dueDate: '', priority: 'medium' });
+  const handleAddNote = async () => {
+    if (!validateForm()) {
+      toast.error("Please fix the form errors");
+      return;
     }
-  };
 
-  const updateTaskStatus = (taskId: string, status: Task['status']) => {
-    setTasks(tasks.map(task => task.id === taskId ? { ...task, status } : task));
+    setSaving(true);
+    try {
+      await dispatch(
+        addNote({
+          stakeholderId: newNote.stakeholderId,
+          content: newNote.content.trim(),
+          isShared: newNote.isShared,
+          createdByName: "Current User", // TODO: Get from auth context
+        })
+      ).unwrap();
+
+      toast.success(
+        newNote.isShared
+          ? "Shared note added successfully"
+          : "Private note added successfully"
+      );
+      setNewNote({
+        stakeholderId: "",
+        content: "",
+        isShared: false,
+      });
+      setErrors({});
+    } catch (error) {
+      toast.error("Failed to add note");
+      console.error("Error adding note:", error);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const getStakeholderName = (id: string) => {
-    return stakeholders.find(s => s.id === id)?.name || 'Unknown';
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'bg-red-100 text-red-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'in-progress': return 'bg-blue-100 text-blue-800';
-      case 'pending': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+    return stakeholders.find((s) => s.id === id)?.name || "Unknown";
   };
 
   return (
@@ -128,63 +137,152 @@ const CollaborationTools: React.FC<CollaborationToolsProps> = ({ stakeholders })
               <MessageSquare className="h-5 w-5 text-blue-600" />
               <CardTitle>Add Collaboration Note</CardTitle>
             </div>
+            <CardDescription>
+              Create private notes or share them with your team members
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Select value={newNote.stakeholderId} onValueChange={(value) => setNewNote({...newNote, stakeholderId: value})}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select stakeholder" />
-              </SelectTrigger>
-              <SelectContent>
-                {stakeholders.map(stakeholder => (
-                  <SelectItem key={stakeholder.id} value={stakeholder.id}>
-                    {stakeholder.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Textarea 
-              placeholder="Add your note about this stakeholder..."
-              value={newNote.content}
-              onChange={(e) => setNewNote({...newNote, content: e.target.value})}
-            />
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2">
-                <input 
-                  type="checkbox" 
-                  checked={newNote.isShared}
-                  onChange={(e) => setNewNote({...newNote, isShared: e.target.checked})}
-                />
-                <span className="text-sm">Share with team</span>
+            <div>
+              <label className="text-sm font-medium">
+                Stakeholder <span className="text-red-500">*</span>
               </label>
-              <Button onClick={addNote}>
+              <Select
+                value={newNote.stakeholderId}
+                onValueChange={(value) =>
+                  setNewNote({ ...newNote, stakeholderId: value })
+                }
+              >
+                <SelectTrigger
+                  className={errors.stakeholderId ? "border-red-500" : ""}
+                >
+                  <SelectValue placeholder="Select stakeholder" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stakeholders.map((stakeholder) => (
+                    <SelectItem key={stakeholder.id} value={stakeholder.id}>
+                      {stakeholder.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.stakeholderId && (
+                <p className="text-sm text-red-500 mt-1">
+                  {errors.stakeholderId}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="text-sm font-medium">
+                Note Content <span className="text-red-500">*</span>
+              </label>
+              <Textarea
+                placeholder="Add your note about this stakeholder... (min 5 characters)"
+                value={newNote.content}
+                onChange={(e) =>
+                  setNewNote({ ...newNote, content: e.target.value })
+                }
+                className={errors.content ? "border-red-500" : ""}
+                rows={4}
+              />
+              {errors.content && (
+                <p className="text-sm text-red-500 mt-1">{errors.content}</p>
+              )}
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="share-note"
+                checked={newNote.isShared}
+                onCheckedChange={(checked) =>
+                  setNewNote({ ...newNote, isShared: checked === true })
+                }
+              />
+              <label
+                htmlFor="share-note"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <Share2 className="h-4 w-4" />
+                  <span>Share with team</span>
+                </div>
+                <p className="text-xs text-muted-foreground font-normal mt-1">
+                  {newNote.isShared
+                    ? "All team members can see this note"
+                    : "Only you can see this note"}
+                </p>
+              </label>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleAddNote} disabled={saving}>
+                {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 <Plus className="h-4 w-4 mr-2" />
-                Add Note
+                {saving ? "Saving..." : "Add Note"}
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        <div className="space-y-4">
-          {notes.map(note => (
-            <Card key={note.id}>
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <h4 className="font-medium">{getStakeholderName(note.stakeholderId)}</h4>
-                    <p className="text-sm text-muted-foreground">by {note.author}</p>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : notes.length === 0 ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">No Notes Yet</h3>
+              <p className="text-sm text-muted-foreground">
+                Start adding notes to track important information about your
+                stakeholders.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {notes.map((note) => (
+              <Card key={note.id}>
+                <CardContent className="pt-6">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <h4 className="font-medium">
+                        {getStakeholderName(note.stakeholderId)}
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        by {note.createdByName || "Unknown"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {note.isShared ? (
+                        <Badge
+                          variant="secondary"
+                          className="bg-blue-100 text-blue-800"
+                        >
+                          <Share2 className="h-3 w-3 mr-1" />
+                          Shared
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="secondary"
+                          className="bg-gray-100 text-gray-800"
+                        >
+                          <Lock className="h-3 w-3 mr-1" />
+                          Private
+                        </Badge>
+                      )}
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(note.createdAt).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {note.isShared && <Share2 className="h-4 w-4 text-blue-600" />}
-                    <span className="text-sm text-muted-foreground">
-                      {new Date(note.timestamp).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-                <p className="text-sm">{note.content}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  <p className="text-sm">{note.content}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </TabsContent>
 
       <TabsContent value="tasks" className="space-y-6">
@@ -192,100 +290,21 @@ const CollaborationTools: React.FC<CollaborationToolsProps> = ({ stakeholders })
           <CardHeader>
             <div className="flex items-center gap-2">
               <CheckSquare className="h-5 w-5 text-green-600" />
-              <CardTitle>Create Task</CardTitle>
+              <CardTitle>Task Management</CardTitle>
             </div>
+            <CardDescription>
+              Task management feature coming soon. Use the Reminders tab for
+              now.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <Select value={newTask.stakeholderId} onValueChange={(value) => setNewTask({...newTask, stakeholderId: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select stakeholder" />
-                </SelectTrigger>
-                <SelectContent>
-                  {stakeholders.map(stakeholder => (
-                    <SelectItem key={stakeholder.id} value={stakeholder.id}>
-                      {stakeholder.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input 
-                placeholder="Task title"
-                value={newTask.title}
-                onChange={(e) => setNewTask({...newTask, title: e.target.value})}
-              />
-            </div>
-            <Textarea 
-              placeholder="Task description"
-              value={newTask.description}
-              onChange={(e) => setNewTask({...newTask, description: e.target.value})}
-            />
-            <div className="grid grid-cols-3 gap-4">
-              <Input 
-                placeholder="Assigned to"
-                value={newTask.assignedTo}
-                onChange={(e) => setNewTask({...newTask, assignedTo: e.target.value})}
-              />
-              <Input 
-                type="date"
-                value={newTask.dueDate}
-                onChange={(e) => setNewTask({...newTask, dueDate: e.target.value})}
-              />
-              <Select value={newTask.priority} onValueChange={(value: any) => setNewTask({...newTask, priority: value})}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="high">High Priority</SelectItem>
-                  <SelectItem value="medium">Medium Priority</SelectItem>
-                  <SelectItem value="low">Low Priority</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button onClick={addTask}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Task
-            </Button>
+          <CardContent className="p-12 text-center">
+            <CheckSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">Tasks Coming Soon</h3>
+            <p className="text-sm text-muted-foreground">
+              This feature is currently under development.
+            </p>
           </CardContent>
         </Card>
-
-        <div className="space-y-4">
-          {tasks.map(task => (
-            <Card key={task.id}>
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h4 className="font-medium">{task.title}</h4>
-                    <p className="text-sm text-muted-foreground mb-2">{task.description}</p>
-                    <div className="flex items-center gap-2 text-sm">
-                      <span>For: {getStakeholderName(task.stakeholderId)}</span>
-                      <span>•</span>
-                      <span>Assigned to: {task.assignedTo}</span>
-                      <span>•</span>
-                      <span>Due: {task.dueDate}</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Badge className={getPriorityColor(task.priority)}>
-                      {task.priority}
-                    </Badge>
-                    <Badge className={getStatusColor(task.status)}>
-                      {task.status}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => updateTaskStatus(task.id, 'in-progress')}>
-                    Start
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => updateTaskStatus(task.id, 'completed')}>
-                    Complete
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
       </TabsContent>
 
       <TabsContent value="communication" className="space-y-6">
@@ -301,7 +320,7 @@ const CollaborationTools: React.FC<CollaborationToolsProps> = ({ stakeholders })
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {stakeholders.map(stakeholder => (
+              {stakeholders.map((stakeholder) => (
                 <div key={stakeholder.id} className="p-4 border rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-medium">{stakeholder.name}</h4>
@@ -311,13 +330,19 @@ const CollaborationTools: React.FC<CollaborationToolsProps> = ({ stakeholders })
                   </div>
                   <div className="text-sm text-muted-foreground">
                     <p>Engagement Level: {stakeholder.engagementLevel}</p>
-                    <p>Relationship Strength: {stakeholder.relationshipStrength}/10</p>
+                    <p>
+                      Relationship Strength: {stakeholder.relationshipStrength}
+                      /10
+                    </p>
                     <p>Next Action: {stakeholder.nextAction}</p>
                   </div>
                   <div className="mt-2">
                     <p className="text-sm">
-                      Notes: {notes.filter(n => n.stakeholderId === stakeholder.id).length} |
-                      Tasks: {tasks.filter(t => t.stakeholderId === stakeholder.id).length}
+                      Notes:{" "}
+                      {
+                        notes.filter((n) => n.stakeholderId === stakeholder.id)
+                          .length
+                      }
                     </p>
                   </div>
                 </div>

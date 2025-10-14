@@ -197,6 +197,7 @@ CREATE TABLE IF NOT EXISTS public.ecosystem_map_shared_note (
   project_id uuid NOT NULL,
   stakeholder_id uuid NOT NULL,
   content text NOT NULL,
+  is_shared boolean DEFAULT false,
   created_by uuid,
   created_by_name text,
   created_at timestamp with time zone DEFAULT now(),
@@ -209,6 +210,8 @@ CREATE TABLE IF NOT EXISTS public.ecosystem_map_shared_note (
 
 CREATE INDEX IF NOT EXISTS idx_ecosystem_map_shared_note_project_id ON public.ecosystem_map_shared_note(project_id);
 CREATE INDEX IF NOT EXISTS idx_ecosystem_map_shared_note_stakeholder_id ON public.ecosystem_map_shared_note(stakeholder_id);
+CREATE INDEX IF NOT EXISTS idx_ecosystem_map_shared_note_created_by ON public.ecosystem_map_shared_note(created_by);
+CREATE INDEX IF NOT EXISTS idx_ecosystem_map_shared_note_is_shared ON public.ecosystem_map_shared_note(is_shared);
 
 -- Ecosystem Map Tasks/Reminders table
 CREATE TABLE IF NOT EXISTS public.ecosystem_map_task (
@@ -609,24 +612,51 @@ CREATE POLICY "Users can manage timeline for their projects" ON ecosystem_map_ti
   );
 
 -- Ecosystem Map Shared Notes policies
+-- Users can view:
+-- 1. Shared notes in their projects (from any team member)
+-- 2. Private notes they created themselves
 DROP POLICY IF EXISTS "Users can view notes for their projects" ON ecosystem_map_shared_note;
 CREATE POLICY "Users can view notes for their projects" ON ecosystem_map_shared_note
   FOR SELECT USING (
-    project_id IN (
-      SELECT id FROM projects 
-      WHERE owner_id = auth.uid() OR 
-      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    (
+      -- Shared notes in their projects
+      is_shared = true AND
+      project_id IN (
+        SELECT id FROM projects 
+        WHERE owner_id = auth.uid() OR 
+        id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+      )
+    )
+    OR
+    (
+      -- Private notes they created
+      is_shared = false AND
+      created_by = auth.uid()
     )
   );
 
-DROP POLICY IF EXISTS "Users can manage notes for their projects" ON ecosystem_map_shared_note;
-CREATE POLICY "Users can manage notes for their projects" ON ecosystem_map_shared_note
-  FOR ALL USING (
+-- Users can create notes in their projects
+DROP POLICY IF EXISTS "Users can create notes for their projects" ON ecosystem_map_shared_note;
+CREATE POLICY "Users can create notes for their projects" ON ecosystem_map_shared_note
+  FOR INSERT WITH CHECK (
     project_id IN (
       SELECT id FROM projects 
       WHERE owner_id = auth.uid() OR 
       id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
     )
+  );
+
+-- Users can only update/delete their own notes
+DROP POLICY IF EXISTS "Users can update their own notes" ON ecosystem_map_shared_note;
+CREATE POLICY "Users can update their own notes" ON ecosystem_map_shared_note
+  FOR UPDATE USING (
+    created_by = auth.uid()
+  );
+
+DROP POLICY IF EXISTS "Users can delete their own notes" ON ecosystem_map_shared_note;
+CREATE POLICY "Users can delete their own notes" ON ecosystem_map_shared_note
+  FOR DELETE USING (
+    created_by = auth.uid()
   );
 
 -- Ecosystem Map Tasks policies

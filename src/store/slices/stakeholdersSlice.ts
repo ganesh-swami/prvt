@@ -69,6 +69,7 @@ export interface SharedNoteData {
   projectId: string;
   stakeholderId: string;
   content: string;
+  isShared: boolean;
   createdBy?: string;
   createdByName?: string;
   createdAt: string;
@@ -359,6 +360,7 @@ const noteSnakeToCamel = (item: EcosystemMapSharedNote): SharedNoteData => ({
   projectId: item.project_id,
   stakeholderId: item.stakeholder_id,
   content: item.content,
+  isShared: item.is_shared,
   createdBy: item.created_by,
   createdByName: item.created_by_name,
   createdAt: item.created_at,
@@ -380,6 +382,7 @@ export const addNote = createAsyncThunk(
     noteData: {
       stakeholderId: string;
       content: string;
+      isShared: boolean;
       createdByName?: string;
     },
     { getState }
@@ -392,6 +395,7 @@ export const addNote = createAsyncThunk(
       project_id: projectId,
       stakeholder_id: noteData.stakeholderId,
       content: noteData.content,
+      is_shared: noteData.isShared,
       created_by_name: noteData.createdByName,
     });
     return newNote;

@@ -425,7 +425,7 @@ const EcosystemMappingEnhanced: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="collaboration" className="space-y-6">
-          <CollaborationTools stakeholders={stakeholders} />
+          <CollaborationTools projectId={TEMP_PROJECT_ID} />
         </TabsContent>
 
         <TabsContent value="reminders" className="space-y-6">
