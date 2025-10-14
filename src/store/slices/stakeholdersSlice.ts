@@ -436,7 +436,7 @@ export const addTask = createAsyncThunk(
   async (
     taskData: Omit<
       TaskData,
-      "id" | "isActive" | "isCompleted" | "createdAt" | "updatedAt"
+      "id" | "projectId" | "isActive" | "isCompleted" | "createdAt" | "updatedAt"
     >,
     { getState }
   ) => {
@@ -465,6 +465,14 @@ export const completeTask = createAsyncThunk(
   async (taskId: string) => {
     const completed = await ecosystemTasksApi.complete(taskId);
     return completed;
+  }
+);
+
+export const deleteTask = createAsyncThunk(
+  "ecosystemMap/deleteTask",
+  async (taskId: string) => {
+    await ecosystemTasksApi.delete(taskId);
+    return taskId;
   }
 );
 
@@ -634,6 +642,10 @@ const ecosystemMapSlice = createSlice({
         if (index !== -1) {
           state.tasks[index] = taskSnakeToCamel(action.payload);
         }
+      })
+      // Delete task
+      .addCase(deleteTask.fulfilled, (state, action) => {
+        state.tasks = state.tasks.filter((t) => t.id !== action.payload);
       });
   },
 });

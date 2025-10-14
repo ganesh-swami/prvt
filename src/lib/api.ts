@@ -543,6 +543,7 @@ export const ecosystemTasksApi = {
       .from("ecosystem_map_task")
       .select("*")
       .eq("project_id", projectId)
+      .eq("is_active", true)
       .order("due_date", { ascending: true });
 
     if (error) throw error;
@@ -596,7 +597,7 @@ export const ecosystemTasksApi = {
   async delete(id: string): Promise<void> {
     const { error } = await supabase
       .from("ecosystem_map_task")
-      .delete()
+      .update({ is_active: false, updated_at: new Date().toISOString() })
       .eq("id", id);
 
     if (error) throw error;

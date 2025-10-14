@@ -429,7 +429,7 @@ const EcosystemMappingEnhanced: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="reminders" className="space-y-6">
-          <EngagementReminders stakeholders={stakeholders} />
+          <EngagementReminders projectId={TEMP_PROJECT_ID} />
         </TabsContent>
 
         <TabsContent value="export" className="space-y-6">
