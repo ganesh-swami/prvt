@@ -1,4 +1,12 @@
-import React, { useState } from "react";
+import React from "react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  setMetrics,
+  setResults,
+  selectMetrics,
+  selectResults,
+  selectShowAnalysis,
+} from "@/store/slices/unitEconomicsSlice";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,32 +21,10 @@ import FinancialScenarios from "./FinancialScenarios";
 import { exportModuleData } from "@/utils/moduleExportUtils";
 
 const UnitEconomicsEnhanced: React.FC = () => {
-  const [metrics, setMetrics] = useState({
-    cac: "",
-    arpu: "",
-    averageOrderValue: "",
-    numberOfCustomers: "",
-    retentionRate: "",
-    transactionSize: "",
-    discountRate: "",
-    grossMargin: "",
-    churnRate: "",
-    operatingExpenses: "",
-  });
-
-  const [results, setResults] = useState({
-    ltv: 0,
-    ltvCacRatio: 0,
-    paybackPeriod: 0,
-    arr: 0,
-    grossProfit: 0,
-    totalRevenue: 0,
-    retentionRate: 0,
-    grossMarginPerLifespan: 0,
-    unitProfitability: 0,
-  });
-
-  const [showAnalysis, setShowAnalysis] = useState(false);
+  const dispatch = useAppDispatch();
+  const metrics = useAppSelector(selectMetrics);
+  const results = useAppSelector(selectResults);
+  const showAnalysis = useAppSelector(selectShowAnalysis);
 
   const calculateUnitEconomics = () => {
     const cac = parseFloat(metrics.cac) || 0;
@@ -63,7 +49,7 @@ const UnitEconomicsEnhanced: React.FC = () => {
     const grossMarginPerLifespan = grossProfit * customerLifespan;
     const unitProfitability = ltv - cac - opex / customers;
 
-    setResults({
+    dispatch(setResults({
       ltv,
       ltvCacRatio,
       paybackPeriod,
@@ -73,9 +59,7 @@ const UnitEconomicsEnhanced: React.FC = () => {
       retentionRate: retention,
       grossMarginPerLifespan,
       unitProfitability,
-    });
-
-    setShowAnalysis(true);
+    }));
   };
 
   
@@ -137,7 +121,7 @@ const handleExport = (format: string) => {
                     type="number"
                     value={metrics.cac}
                     onChange={(e) =>
-                      setMetrics({ ...metrics, cac: e.target.value })
+                      dispatch(setMetrics({ cac: e.target.value }))
                     }
                     placeholder="150"
                   />
@@ -160,7 +144,7 @@ const handleExport = (format: string) => {
                     type="number"
                     value={metrics.arpu}
                     onChange={(e) =>
-                      setMetrics({ ...metrics, arpu: e.target.value })
+                      dispatch(setMetrics({ arpu: e.target.value }))
                     }
                     placeholder="50"
                   />
@@ -181,10 +165,7 @@ const handleExport = (format: string) => {
                     type="number"
                     value={metrics.averageOrderValue}
                     onChange={(e) =>
-                      setMetrics({
-                        ...metrics,
-                        averageOrderValue: e.target.value,
-                      })
+                      dispatch(setMetrics({ averageOrderValue: e.target.value }))
                     }
                     placeholder="75"
                   />
@@ -205,10 +186,7 @@ const handleExport = (format: string) => {
                     type="number"
                     value={metrics.numberOfCustomers}
                     onChange={(e) =>
-                      setMetrics({
-                        ...metrics,
-                        numberOfCustomers: e.target.value,
-                      })
+                      dispatch(setMetrics({ numberOfCustomers: e.target.value }))
                     }
                     placeholder="1000"
                   />
@@ -229,7 +207,7 @@ const handleExport = (format: string) => {
                     type="number"
                     value={metrics.retentionRate}
                     onChange={(e) =>
-                      setMetrics({ ...metrics, retentionRate: e.target.value })
+                      dispatch(setMetrics({ retentionRate: e.target.value }))
                     }
                     placeholder="85"
                   />
@@ -250,7 +228,7 @@ const handleExport = (format: string) => {
                     type="number"
                     value={metrics.grossMargin}
                     onChange={(e) =>
-                      setMetrics({ ...metrics, grossMargin: e.target.value })
+                      dispatch(setMetrics({ grossMargin: e.target.value }))
                     }
                     placeholder="70"
                   />
@@ -271,7 +249,7 @@ const handleExport = (format: string) => {
                     type="number"
                     value={metrics.churnRate}
                     onChange={(e) =>
-                      setMetrics({ ...metrics, churnRate: e.target.value })
+                      dispatch(setMetrics({ churnRate: e.target.value }))
                     }
                     placeholder="15"
                   />
@@ -289,10 +267,7 @@ const handleExport = (format: string) => {
                     type="number"
                     value={metrics.transactionSize}
                     onChange={(e) =>
-                      setMetrics({
-                        ...metrics,
-                        transactionSize: e.target.value,
-                      })
+                      dispatch(setMetrics({ transactionSize: e.target.value }))
                     }
                     placeholder="120"
                   />
@@ -308,7 +283,7 @@ const handleExport = (format: string) => {
                     type="number"
                     value={metrics.discountRate}
                     onChange={(e) =>
-                      setMetrics({ ...metrics, discountRate: e.target.value })
+                      dispatch(setMetrics({ discountRate: e.target.value }))
                     }
                     placeholder="10"
                   />
@@ -329,10 +304,7 @@ const handleExport = (format: string) => {
                     type="number"
                     value={metrics.operatingExpenses}
                     onChange={(e) =>
-                      setMetrics({
-                        ...metrics,
-                        operatingExpenses: e.target.value,
-                      })
+                      dispatch(setMetrics({ operatingExpenses: e.target.value }))
                     }
                     placeholder="5000"
                   />

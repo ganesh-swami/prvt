@@ -1,4 +1,16 @@
-import React, { useState } from "react";
+import React from "react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  setMarketData,
+  setApproach,
+  setValueUnit,
+  setResults,
+  selectMarketData,
+  selectApproach,
+  selectValueUnit,
+  selectResults,
+  selectShowAnalysis,
+} from "@/store/slices/marketSizingSlice";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,26 +39,12 @@ import { MarketSizingMethodology } from "@/components/modules/MarketSizingMethod
 import { exportModuleData } from "@/utils/moduleExportUtils";
 
 const MarketSizingEnhanced: React.FC = () => {
-  const [marketData, setMarketData] = useState({
-    totalMarket: "",
-    targetSegment: "",
-    penetrationRate: "",
-    avgRevenue: "",
-    marketGrowth: "",
-    competitorShare: "",
-  });
-
-  const [approach, setApproach] = useState("top-down");
-  const [valueUnit, setValueUnit] = useState<"millions" | "billions">(
-    "billions"
-  );
-  const [results, setResults] = useState({
-    tam: 0,
-    sam: 0,
-    som: 0,
-    revenueOpportunity: 0,
-  });
-  const [showAnalysis, setShowAnalysis] = useState(false);
+  const dispatch = useAppDispatch();
+  const marketData = useAppSelector(selectMarketData);
+  const approach = useAppSelector(selectApproach);
+  const valueUnit = useAppSelector(selectValueUnit);
+  const results = useAppSelector(selectResults);
+  const showAnalysis = useAppSelector(selectShowAnalysis);
 
   const calculateMarketSize = () => {
     const total = parseFloat(marketData.totalMarket) || 0;
@@ -60,8 +58,7 @@ const MarketSizingEnhanced: React.FC = () => {
     const som = sam * (penetration / 100);
     const revenueOpportunity = som * avgRev;
 
-    setResults({ tam, sam, som, revenueOpportunity });
-    setShowAnalysis(true);
+    dispatch(setResults({ tam, sam, som, revenueOpportunity }));
   };
 
   const formatValue = (value: number) => {
@@ -139,7 +136,7 @@ const MarketSizingEnhanced: React.FC = () => {
                 <Select
                   value={valueUnit}
                   onValueChange={(value: "millions" | "billions") =>
-                    setValueUnit(value)
+                    dispatch(setValueUnit(value))
                   }
                 >
                   <SelectTrigger className="w-32">
@@ -178,10 +175,9 @@ const MarketSizingEnhanced: React.FC = () => {
                     type="number"
                     value={marketData.totalMarket}
                     onChange={(e) =>
-                      setMarketData({
-                        ...marketData,
-                        totalMarket: e.target.value,
-                      })
+                      dispatch(
+                        setMarketData({ totalMarket: e.target.value })
+                      )
                     }
                     placeholder="e.g., 50"
                     className="border-blue-200 focus:border-blue-500"
@@ -204,10 +200,9 @@ const MarketSizingEnhanced: React.FC = () => {
                     type="number"
                     value={marketData.targetSegment}
                     onChange={(e) =>
-                      setMarketData({
-                        ...marketData,
-                        targetSegment: e.target.value,
-                      })
+                      dispatch(
+                        setMarketData({ targetSegment: e.target.value })
+                      )
                     }
                     placeholder="e.g., 20"
                     className="border-purple-200 focus:border-purple-500"
@@ -232,10 +227,9 @@ const MarketSizingEnhanced: React.FC = () => {
                     type="number"
                     value={marketData.penetrationRate}
                     onChange={(e) =>
-                      setMarketData({
-                        ...marketData,
-                        penetrationRate: e.target.value,
-                      })
+                      dispatch(
+                        setMarketData({ penetrationRate: e.target.value })
+                      )
                     }
                     placeholder="e.g., 5"
                     className="border-green-200 focus:border-green-500"
@@ -258,10 +252,9 @@ const MarketSizingEnhanced: React.FC = () => {
                     type="number"
                     value={marketData.avgRevenue}
                     onChange={(e) =>
-                      setMarketData({
-                        ...marketData,
-                        avgRevenue: e.target.value,
-                      })
+                      dispatch(
+                        setMarketData({ avgRevenue: e.target.value })
+                      )
                     }
                     placeholder="e.g., 1000"
                     className="border-orange-200 focus:border-orange-500"
@@ -297,7 +290,10 @@ const MarketSizingEnhanced: React.FC = () => {
             <CardContent>
               <div className="space-y-4">
                 <Label>Choose Your Approach</Label>
-                <Select value={approach} onValueChange={setApproach}>
+                <Select
+                  value={approach}
+                  onValueChange={(value) => dispatch(setApproach(value))}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

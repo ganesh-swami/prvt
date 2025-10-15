@@ -1,4 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import {
+  setPricingData,
+  setStrategy,
+  setResults,
+  selectPricingData,
+  selectStrategy,
+  selectPricingResults,
+} from '@/store/slices/pricingLabSlice';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,22 +22,10 @@ import PricingAnalysis from './PricingAnalysis';
 import PricingStrategy from './PricingStrategy';
 import { exportModuleData } from '@/utils/moduleExportUtils';
 const PricingLabEnhanced: React.FC = () => {
-  const [pricingData, setPricingData] = useState({
-    costBasis: '',
-    targetMargin: '',
-    competitorPrice: '',
-    valueDelivered: '',
-    priceElasticity: [50]
-  });
-
-  const [strategy, setStrategy] = useState('value-based');
-  const [results, setResults] = useState({
-    costPlusPrice: 0,
-    competitivePrice: 0,
-    valueBasedPrice: 0,
-    recommendedPrice: 0,
-    demandForecast: 0
-  });
+  const dispatch = useAppDispatch();
+  const pricingData = useAppSelector(selectPricingData);
+  const strategy = useAppSelector(selectStrategy);
+  const results = useAppSelector(selectPricingResults);
 
   const calculatePricing = () => {
     const cost = parseFloat(pricingData.costBasis) || 0;
@@ -59,13 +56,13 @@ const PricingLabEnhanced: React.FC = () => {
     const elasticity = pricingData.priceElasticity[0] / 100;
     const demandForecast = 1000 * (1 - elasticity * (recommendedPrice / 100));
 
-    setResults({
+    dispatch(setResults({
       costPlusPrice,
       competitivePrice,
       valueBasedPrice,
       recommendedPrice,
       demandForecast: Math.max(0, demandForecast)
-    });
+    }));
   };
 
   const handleExport = (format: string) => {
@@ -124,7 +121,7 @@ const PricingLabEnhanced: React.FC = () => {
                     id="costBasis"
                     type="number"
                     value={pricingData.costBasis}
-                    onChange={(e) => setPricingData({...pricingData, costBasis: e.target.value})}
+                    onChange={(e) => dispatch(setPricingData({ costBasis: e.target.value }))}
                     placeholder="e.g., 50"
                     className="border-2 focus:border-blue-500 transition-colors"
                   />
@@ -144,7 +141,7 @@ const PricingLabEnhanced: React.FC = () => {
                     id="targetMargin"
                     type="number"
                     value={pricingData.targetMargin}
-                    onChange={(e) => setPricingData({...pricingData, targetMargin: e.target.value})}
+                    onChange={(e) => dispatch(setPricingData({ targetMargin: e.target.value }))}
                     placeholder="e.g., 40"
                     className="border-2 focus:border-blue-500 transition-colors"
                   />
@@ -164,7 +161,7 @@ const PricingLabEnhanced: React.FC = () => {
                     id="competitorPrice"
                     type="number"
                     value={pricingData.competitorPrice}
-                    onChange={(e) => setPricingData({...pricingData, competitorPrice: e.target.value})}
+                    onChange={(e) => dispatch(setPricingData({ competitorPrice: e.target.value }))}
                     placeholder="e.g., 100"
                     className="border-2 focus:border-blue-500 transition-colors"
                   />
@@ -184,7 +181,7 @@ const PricingLabEnhanced: React.FC = () => {
                     id="valueDelivered"
                     type="number"
                     value={pricingData.valueDelivered}
-                    onChange={(e) => setPricingData({...pricingData, valueDelivered: e.target.value})}
+                    onChange={(e) => dispatch(setPricingData({ valueDelivered: e.target.value }))}
                     placeholder="e.g., 500"
                     className="border-2 focus:border-blue-500 transition-colors"
                   />
@@ -203,7 +200,7 @@ const PricingLabEnhanced: React.FC = () => {
                 </div>
                 <Slider
                   value={pricingData.priceElasticity}
-                  onValueChange={(value) => setPricingData({...pricingData, priceElasticity: value})}
+                  onValueChange={(value) => dispatch(setPricingData({ priceElasticity: value }))}
                   max={100}
                   step={1}
                   className="w-full"
@@ -234,7 +231,7 @@ const PricingLabEnhanced: React.FC = () => {
           </Card>
         </TabsContent>
         <TabsContent value="strategy">
-          <PricingStrategy strategy={strategy} setStrategy={setStrategy} />
+          <PricingStrategy strategy={strategy} setStrategy={(value) => dispatch(setStrategy(value))} />
         </TabsContent>
 
         <TabsContent value="results">

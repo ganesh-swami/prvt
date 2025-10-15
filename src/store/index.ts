@@ -3,6 +3,9 @@ import planBuilderReducer from "./slices/planBuilderSlice";
 import socialCanvasReducer from "./slices/socialCanvasSlice";
 import problemTreeReducer from "./slices/problemTreeSlice";
 import ecosystemMapReducer from "./slices/stakeholdersSlice";
+import marketSizingReducer from "./slices/marketSizingSlice";
+import pricingLabReducer from "./slices/pricingLabSlice";
+import unitEconomicsReducer from "./slices/unitEconomicsSlice";
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +13,9 @@ export const store = configureStore({
     socialCanvas: socialCanvasReducer,
     problemTree: problemTreeReducer,
     ecosystemMap: ecosystemMapReducer,
+    marketSizing: marketSizingReducer,
+    pricingLab: pricingLabReducer,
+    unitEconomics: unitEconomicsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
