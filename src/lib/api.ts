@@ -67,6 +67,23 @@ export const userApi = {
     if (error) return null;
     return data;
   },
+
+  async getProjectTeamMembers(projectId: string): Promise<User[]> {
+    const { data, error } = await supabase
+      .from("project_collaborators")
+      .select(
+        `
+        user_id,
+        users!project_collaborators_user_id_fkey (*)
+      `
+      )
+      .eq("project_id", projectId);
+
+    if (error) throw error;
+    
+    // Filter out null users and return User array
+    return (data?.map((item) => item.users).filter(Boolean) as unknown as User[]) || [];
+  },
 };
 
 // Organization API

@@ -4,12 +4,14 @@ import {
   ecosystemTimelineApi,
   ecosystemNotesApi,
   ecosystemTasksApi,
+  userApi,
 } from "@/lib/api";
 import type {
   Stakeholder,
   EcosystemMapTimeline,
   EcosystemMapSharedNote,
   EcosystemMapTask,
+  User,
 } from "@/types";
 import type { RootState } from "../index";
 
@@ -110,9 +112,11 @@ interface EcosystemMapState {
   timeline: TimelineEventData[];
   notes: SharedNoteData[];
   tasks: TaskData[];
+  teamMembers: User[];
   loadingTimeline: boolean;
   loadingNotes: boolean;
   loadingTasks: boolean;
+  loadingTeamMembers: boolean;
 }
 
 const initialState: EcosystemMapState = {
@@ -141,9 +145,11 @@ const initialState: EcosystemMapState = {
   timeline: [],
   notes: [],
   tasks: [],
+  teamMembers: [],
   loadingTimeline: false,
   loadingNotes: false,
   loadingTasks: false,
+  loadingTeamMembers: false,
 };
 
 // Helper: Convert snake_case to camelCase
@@ -455,6 +461,7 @@ export const addTask = createAsyncThunk(
       priority: taskData.priority,
       is_active: true,
       is_completed: false,
+      assigned_to: taskData.assignedTo,
     });
     return newTask;
   }
@@ -473,6 +480,15 @@ export const deleteTask = createAsyncThunk(
   async (taskId: string) => {
     await ecosystemTasksApi.delete(taskId);
     return taskId;
+  }
+);
+
+// Team Members thunk
+export const fetchTeamMembers = createAsyncThunk(
+  "ecosystemMap/fetchTeamMembers",
+  async (projectId: string) => {
+    const members = await userApi.getProjectTeamMembers(projectId);
+    return members;
   }
 );
 
@@ -495,9 +511,11 @@ const ecosystemMapSlice = createSlice({
       state.timeline = [];
       state.notes = [];
       state.tasks = [];
+      state.teamMembers = [];
       state.loadingTimeline = false;
       state.loadingNotes = false;
       state.loadingTasks = false;
+      state.loadingTeamMembers = false;
     },
     clearError: (state) => {
       state.error = null;
@@ -646,6 +664,17 @@ const ecosystemMapSlice = createSlice({
       // Delete task
       .addCase(deleteTask.fulfilled, (state, action) => {
         state.tasks = state.tasks.filter((t) => t.id !== action.payload);
+      })
+      // Fetch team members
+      .addCase(fetchTeamMembers.pending, (state) => {
+        state.loadingTeamMembers = true;
+      })
+      .addCase(fetchTeamMembers.fulfilled, (state, action) => {
+        state.loadingTeamMembers = false;
+        state.teamMembers = action.payload;
+      })
+      .addCase(fetchTeamMembers.rejected, (state) => {
+        state.loadingTeamMembers = false;
       });
   },
 });
@@ -676,5 +705,9 @@ export const selectLoadingNotes = (state: RootState) =>
   state.ecosystemMap.loadingNotes;
 export const selectLoadingTasks = (state: RootState) =>
   state.ecosystemMap.loadingTasks;
+export const selectTeamMembers = (state: RootState) =>
+  state.ecosystemMap.teamMembers;
+export const selectLoadingTeamMembers = (state: RootState) =>
+  state.ecosystemMap.loadingTeamMembers;
 
 export default ecosystemMapSlice.reducer;
