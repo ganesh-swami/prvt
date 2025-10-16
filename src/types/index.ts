@@ -229,6 +229,20 @@ export interface Competitor {
   updated_at: string;
 }
 
+export interface Risk {
+  id: string;
+  project_id: string;
+  description: string;
+  category: string;
+  likelihood: number;
+  impact: number;
+  owner?: string;
+  mitigation_strategy?: string;
+  status: 'Active' | 'Resolved' | 'Mitigated' | 'Monitoring';
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Comment {
   id: string;
   project_id: string;

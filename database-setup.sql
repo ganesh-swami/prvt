@@ -306,6 +306,23 @@ CREATE TABLE IF NOT EXISTS public.competitors (
   CONSTRAINT competitors_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE
 );
 
+-- Risks table
+CREATE TABLE IF NOT EXISTS public.risks (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL,
+  description text NOT NULL,
+  category text NOT NULL,
+  likelihood integer NOT NULL CHECK (likelihood >= 1 AND likelihood <= 10),
+  impact integer NOT NULL CHECK (impact >= 1 AND impact <= 10),
+  owner text,
+  mitigation_strategy text,
+  status text DEFAULT 'Active'::text CHECK (status = ANY (ARRAY['Active'::text, 'Resolved'::text, 'Mitigated'::text, 'Monitoring'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT risks_pkey PRIMARY KEY (id),
+  CONSTRAINT risks_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE
+);
+
 -- Comments table
 CREATE TABLE IF NOT EXISTS public.comments (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -478,6 +495,7 @@ ALTER TABLE market_assumptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pricing_scenarios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE financial_models ENABLE ROW LEVEL SECURITY;
 ALTER TABLE competitors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE risks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
@@ -774,6 +792,27 @@ CREATE POLICY "Users can manage competitors for their projects" ON competitors
     )
   );
 
+-- Risks policies
+DROP POLICY IF EXISTS "Users can view risks for their projects" ON risks;
+CREATE POLICY "Users can view risks for their projects" ON risks
+  FOR SELECT USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can manage risks for their projects" ON risks;
+CREATE POLICY "Users can manage risks for their projects" ON risks
+  FOR ALL USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  );
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_projects_owner_id ON projects(owner_id);
 CREATE INDEX IF NOT EXISTS idx_projects_updated_at ON projects(updated_at);
@@ -782,6 +821,7 @@ CREATE INDEX IF NOT EXISTS idx_market_assumptions_project_id ON market_assumptio
 CREATE INDEX IF NOT EXISTS idx_pricing_scenarios_project_id ON pricing_scenarios(project_id);
 CREATE INDEX IF NOT EXISTS idx_financial_models_project_id ON financial_models(project_id);
 CREATE INDEX IF NOT EXISTS idx_competitors_project_id ON competitors(project_id);
+CREATE INDEX IF NOT EXISTS idx_risks_project_id ON risks(project_id);
 CREATE INDEX IF NOT EXISTS idx_comments_project_id ON comments(project_id);
 CREATE INDEX IF NOT EXISTS idx_comments_author_id ON comments(author_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);

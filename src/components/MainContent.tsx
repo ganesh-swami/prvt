@@ -58,7 +58,7 @@ export const MainContent: React.FC = () => {
       case "investor-room":
         return <InvestorRoom />;
       case "risk-center":
-        return <RiskCenter />;
+        return <RiskCenter projectId={TEMP_PROJECT_ID} />;
       case "esg-compliance":
         return <ESGComplianceTracking />;
       case "drafts-and-plans":

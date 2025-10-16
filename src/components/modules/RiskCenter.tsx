@@ -1,4 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import {
+  fetchRisks,
+  addRisk as addRiskAction,
+  deleteRisk as deleteRiskAction,
+  updateRisk as updateRiskAction,
+  setProjectId,
+  setNewRisk,
+  resetNewRisk,
+  setShowAddForm,
+  selectRisks,
+  selectNewRisk,
+  selectShowAddForm,
+  selectLoading,
+  selectSaving,
+  selectError,
+  selectLastSaved,
+} from '@/store/slices/riskSlice';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Shield, AlertTriangle, Plus } from 'lucide-react';
+import { Shield, AlertTriangle, Plus, Trash2 } from 'lucide-react';
 import { CustomTooltip } from '@/components/common/CustomTooltip';
 import { SaveButtons } from '@/components/common/SaveButtons';
 import MitigationStrategies from './risk/MitigationStrategies';
@@ -24,48 +43,59 @@ interface Risk {
   status: 'Active' | 'Resolved' | 'Mitigated' | 'Monitoring';
 }
 
-const RiskCenter: React.FC = () => {
-  const [risks, setRisks] = useState<Risk[]>([
-    {
-      id: 'R001',
-      description: 'Market demand uncertainty for social impact products',
-      category: 'Market',
-      likelihood: 7,
-      impact: 8,
-      owner: 'Marketing Director',
-      mitigationStrategy: 'Conduct extensive market research and pilot programs',
-      status: 'Active'
-    },
-    {
-      id: 'R002', 
-      description: 'Regulatory changes affecting compliance',
-      category: 'Regulatory',
-      likelihood: 6,
-      impact: 9,
-      owner: 'Compliance Officer',
-      mitigationStrategy: 'Regular monitoring of regulatory updates and legal consultation',
-      status: 'Monitoring'
+interface RiskCenterProps {
+  projectId: string;
+}
+
+const RiskCenter: React.FC<RiskCenterProps> = ({ projectId }) => {
+  const dispatch = useAppDispatch();
+  
+  // Redux state
+  const risks = useAppSelector(selectRisks);
+  const newRisk = useAppSelector(selectNewRisk);
+  const showAddForm = useAppSelector(selectShowAddForm);
+  const loading = useAppSelector(selectLoading);
+  const saving = useAppSelector(selectSaving);
+  const error = useAppSelector(selectError);
+  const lastSaved = useAppSelector(selectLastSaved);
+
+  // Load risks on mount
+  useEffect(() => {
+    if (projectId) {
+      dispatch(setProjectId(projectId));
+      dispatch(fetchRisks(projectId));
     }
-  ]);
+  }, [projectId, dispatch]);
 
-  const [newRisk, setNewRisk] = useState<Partial<Risk>>({});
-  const [showAddForm, setShowAddForm] = useState(false);
+  // Show error toast
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
 
-  const addRisk = () => {
-    if (newRisk.description && newRisk.category) {
-      const risk: Risk = {
-        id: `R${String(risks.length + 1).padStart(3, '0')}`,
-        description: newRisk.description || '',
-        category: newRisk.category || '',
-        likelihood: newRisk.likelihood || 5,
-        impact: newRisk.impact || 5,
-        owner: newRisk.owner || '',
-        mitigationStrategy: newRisk.mitigationStrategy || '',
-        status: 'Active'
-      };
-      setRisks([...risks, risk]);
-      setNewRisk({});
-      setShowAddForm(false);
+  const addRiskHandler = async () => {
+    if (!newRisk.description || !newRisk.category) {
+      toast.error('Please fill in description and category');
+      return;
+    }
+    
+    try {
+      await dispatch(addRiskAction({ projectId, risk: newRisk })).unwrap();
+      toast.success('Risk added successfully!');
+    } catch (err) {
+      toast.error('Failed to add risk');
+      console.error('Error adding risk:', err);
+    }
+  };
+
+  const deleteRiskHandler = async (id: string) => {
+    try {
+      await dispatch(deleteRiskAction(id)).unwrap();
+      toast.success('Risk deleted successfully!');
+    } catch (err) {
+      toast.error('Failed to delete risk');
+      console.error('Error deleting risk:', err);
     }
   };
 
@@ -78,21 +108,34 @@ const RiskCenter: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <Shield className="h-8 w-8 text-blue-600" />
           <div>
-            <CustomTooltip content="Comprehensive risk management system for identifying, assessing, and mitigating organizational risks">
-              <h1 className="text-3xl font-bold cursor-help">Risk Center</h1>
-            </CustomTooltip>
-            <p className="text-muted-foreground">Comprehensive risk management and mitigation tracking</p>
+            <div className="flex items-center gap-2">
+              <CustomTooltip content="Comprehensive risk management system for identifying, assessing, and mitigating organizational risks">
+                <h1 className="text-2xl sm:text-3xl font-bold cursor-help">Risk Center</h1>
+              </CustomTooltip>
+              {loading && (
+                <div className="text-sm text-muted-foreground animate-pulse">
+                  Loading...
+                </div>
+              )}
+            </div>
+            <p className="text-muted-foreground text-sm sm:text-base">Comprehensive risk management and mitigation tracking</p>
           </div>
         </div>
-        <SaveButtons 
-          moduleKey="risk-center" 
-          moduleData={{ risks, newRisk }}
-          className="ml-4"
-        />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+          <Badge variant="secondary" className="px-3 py-1">
+            <AlertTriangle className="w-4 h-4 mr-1" />
+            {risks.length} Risks
+          </Badge>
+          {lastSaved && (
+            <div className="text-xs text-muted-foreground">
+              Last saved: {new Date(lastSaved).toLocaleString()}
+            </div>
+          )}
+        </div>
       </div>
 
       <Tabs defaultValue="register" className="space-y-6">
@@ -112,7 +155,7 @@ const RiskCenter: React.FC = () => {
                   <CardTitle>Risk Register</CardTitle>
                   <CustomTooltip content="Comprehensive tracking system for identifying, assessing, and managing organizational risks. Each risk is assigned a unique ID, categorized, and tracked through its lifecycle." />
                 </div>
-                <Button onClick={() => setShowAddForm(!showAddForm)} className="flex items-center gap-2">
+                <Button onClick={() => dispatch(setShowAddForm(!showAddForm))} className="flex items-center gap-2" disabled={loading}>
                   <Plus className="h-4 w-4" />
                   Add Risk
                 </Button>
@@ -127,23 +170,23 @@ const RiskCenter: React.FC = () => {
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Label htmlFor="description">Risk Description</Label>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <Label htmlFor="description" className="text-left block">Risk Description</Label>
                           <CustomTooltip content="Clear, concise explanation of the potential risk event or condition. Include what could happen, when it might occur, and initial context. Be specific about the risk scenario to enable proper assessment and mitigation planning." />
                         </div>
                         <Textarea
                           id="description"
                           placeholder="Describe the potential risk scenario, triggers, and context..."
                           value={newRisk.description || ''}
-                          onChange={(e) => setNewRisk({...newRisk, description: e.target.value})}
+                          onChange={(e) => dispatch(setNewRisk({ description: e.target.value }))}
                         />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Label htmlFor="category">Risk Category</Label>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <Label htmlFor="category" className="text-left block">Risk Category</Label>
                           <CustomTooltip content="Classification system for organizing risks by type. Technical: technology and system risks; Financial: budget, funding, and economic risks; Operational: process and resource risks; Market: demand and competition risks; Regulatory: compliance and legal risks; Strategic: business model and direction risks." />
                         </div>
-                        <Select onValueChange={(value) => setNewRisk({...newRisk, category: value})}>
+                        <Select value={newRisk.category || ''} onValueChange={(value) => dispatch(setNewRisk({ category: value }))}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select risk category" />
                           </SelectTrigger>
@@ -158,8 +201,8 @@ const RiskCenter: React.FC = () => {
                         </Select>
                       </div>
                       <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Label htmlFor="likelihood">Likelihood (1-10)</Label>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <Label htmlFor="likelihood" className="text-left block">Likelihood (1-10)</Label>
                           <CustomTooltip content="Probability assessment of risk occurrence. Scale: 1-2 Very Low (rare), 3-4 Low (unlikely), 5-6 Medium (possible), 7-8 High (likely), 9-10 Very High (almost certain). Consider historical data, current conditions, and expert judgment when rating." />
                         </div>
                         <Input
@@ -169,12 +212,12 @@ const RiskCenter: React.FC = () => {
                           max="10"
                           placeholder="Rate 1-10"
                           value={newRisk.likelihood || 5}
-                          onChange={(e) => setNewRisk({...newRisk, likelihood: parseInt(e.target.value)})}
+                          onChange={(e) => dispatch(setNewRisk({ likelihood: parseInt(e.target.value) }))}
                         />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Label htmlFor="impact">Impact (1-10)</Label>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <Label htmlFor="impact" className="text-left block">Impact (1-10)</Label>
                           <CustomTooltip content="Severity assessment of consequences if risk occurs. Scale: 1-2 Minimal (negligible effect), 3-4 Minor (limited impact), 5-6 Moderate (significant but manageable), 7-8 Major (serious consequences), 9-10 Catastrophic (severe organizational impact). Consider financial, operational, and strategic effects." />
                         </div>
                         <Input
@@ -184,80 +227,159 @@ const RiskCenter: React.FC = () => {
                           max="10"
                           placeholder="Rate 1-10"
                           value={newRisk.impact || 5}
-                          onChange={(e) => setNewRisk({...newRisk, impact: parseInt(e.target.value)})}
+                          onChange={(e) => dispatch(setNewRisk({ impact: parseInt(e.target.value) }))}
                         />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Label htmlFor="owner">Risk Owner</Label>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <Label htmlFor="owner" className="text-left block">Risk Owner</Label>
                           <CustomTooltip content="Individual accountable for monitoring, managing, and reporting on this specific risk. Should have authority and resources to implement mitigation strategies. Typically a senior role with relevant expertise and organizational influence." />
                         </div>
                         <Input
                           id="owner"
                           placeholder="Name, title, or role responsible"
                           value={newRisk.owner || ''}
-                          onChange={(e) => setNewRisk({...newRisk, owner: e.target.value})}
+                          onChange={(e) => dispatch(setNewRisk({ owner: e.target.value }))}
                         />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Label htmlFor="mitigation">Mitigation Strategy</Label>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <Label htmlFor="mitigation" className="text-left block">Mitigation Strategy</Label>
                           <CustomTooltip content="Specific actions planned to manage this risk. Choose from: Avoidance (eliminate risk), Reduction (decrease likelihood/impact), Transfer (shift to third party), or Acceptance (acknowledge and monitor). Include concrete steps, timelines, and success metrics." />
                         </div>
                         <Textarea
                           id="mitigation"
                           placeholder="Describe specific mitigation actions, timelines, and success metrics..."
                           value={newRisk.mitigationStrategy || ''}
-                          onChange={(e) => setNewRisk({...newRisk, mitigationStrategy: e.target.value})}
+                          onChange={(e) => dispatch(setNewRisk({ mitigationStrategy: e.target.value }))}
                         />
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button onClick={addRisk}>Add Risk</Button>
-                      <Button variant="outline" onClick={() => setShowAddForm(false)}>Cancel</Button>
+                      <Button onClick={addRiskHandler} disabled={saving}>
+                        {saving ? 'Adding...' : 'Add Risk'}
+                      </Button>
+                      <Button variant="outline" onClick={() => dispatch(setShowAddForm(false))} disabled={saving}>Cancel</Button>
                     </div>
                   </CardContent>
                 </Card>
               )}
 
+              {risks.length === 0 && !showAddForm ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <Shield className="w-16 h-16 text-gray-300 mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-700 mb-2">No Risks Registered</h3>
+                    <p className="text-gray-500 text-center mb-6 max-w-md">
+                      Start building your risk register by identifying and documenting potential risks to your organization.
+                    </p>
+                    <Button
+                      onClick={() => dispatch(setShowAddForm(true))}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Your First Risk
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : null}
+
               {risks.map((risk) => {
                 const riskScore = getRiskScore(risk.likelihood, risk.impact);
                 const riskLevel = getRiskLevel(riskScore);
                 
+                // Border color based on risk level
+                const getBorderColor = (level: string) => {
+                  switch (level) {
+                    case 'High':
+                      return 'border-l-red-500';
+                    case 'Medium':
+                      return 'border-l-yellow-500';
+                    case 'Low':
+                      return 'border-l-green-500';
+                    default:
+                      return 'border-l-blue-500';
+                  }
+                };
+                
+                // Status badge color mapping
+                const getStatusColor = (status: string) => {
+                  switch (status) {
+                    case 'Active':
+                      return 'destructive';
+                    case 'Monitoring':
+                      return 'default';
+                    case 'Mitigated':
+                      return 'secondary';
+                    case 'Resolved':
+                      return 'outline';
+                    default:
+                      return 'outline';
+                  }
+                };
+                
                 return (
-                  <Card key={risk.id} className="border-l-4 border-l-blue-500">
-                    <CardContent className="pt-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline">{risk.id}</Badge>
-                            <Badge variant={riskLevel.color as any}>{riskLevel.level}</Badge>
-                          </div>
-                          <h4 className="font-semibold">{risk.description}</h4>
-                          <p className="text-sm text-muted-foreground">Category: {risk.category}</p>
+                  <Card key={risk.id} className={`border-l-4 ${getBorderColor(riskLevel.level)} relative`}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteRiskHandler(risk.id)}
+                      className="absolute top-4 right-4 text-red-600 hover:text-red-800 hover:bg-red-50"
+                      disabled={saving}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                    
+                    <CardContent className="pt-6 pr-16">
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">{risk.id?.substring(0, 8)}</Badge>
+                          <Badge variant={riskLevel.color as any}>{riskLevel.level}</Badge>
                         </div>
                         
                         <div className="space-y-2">
-                          <div className="flex justify-between">
-                            <span className="text-sm">Likelihood:</span>
-                            <span className="font-medium">{risk.likelihood}/10</span>
+                          <div className="flex items-start">
+                            <span className="text-sm text-muted-foreground w-24 flex-shrink-0">Description:</span>
+                            <h4 className="font-semibold text-base">{risk.description}</h4>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm">Impact:</span>
-                            <span className="font-medium">{risk.impact}/10</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm">Risk Score:</span>
-                            <span className="font-bold">{riskScore}</span>
+                          <div className="flex items-center">
+                            <span className="text-sm text-muted-foreground w-24">Category:</span>
+                            <span className="font-medium text-sm">{risk.category}</span>
                           </div>
                         </div>
                         
-                        <div className="space-y-2">
-                          <p className="text-sm"><strong>Owner:</strong> {risk.owner}</p>
-                          <p className="text-sm"><strong>Status:</strong> 
-                            <Badge variant="outline" className="ml-2">{risk.status}</Badge>
-                          </p>
-                          <p className="text-sm"><strong>Mitigation:</strong> {risk.mitigationStrategy}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                          <div className="space-y-2">
+                            <div className="flex items-center">
+                              <span className="text-sm text-muted-foreground w-24">Likelihood:</span>
+                              <span className="font-medium">{risk.likelihood}/10</span>
+                            </div>
+                            <div className="flex items-center">
+                              <span className="text-sm text-muted-foreground w-24">Impact:</span>
+                              <span className="font-medium">{risk.impact}/10</span>
+                            </div>
+                            <div className="flex items-center">
+                              <span className="text-sm text-muted-foreground w-24">Risk Score:</span>
+                              <span className="font-bold text-base">{riskScore}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <div className="flex items-center">
+                              <span className="text-sm text-muted-foreground w-24">Owner:</span>
+                              <span className="font-medium text-sm">{risk.owner || 'Unassigned'}</span>
+                            </div>
+                            <div className="flex items-center">
+                              <span className="text-sm text-muted-foreground w-24">Status:</span>
+                              <Badge variant={getStatusColor(risk.status) as any}>{risk.status}</Badge>
+                            </div>
+                            <div className="flex items-start">
+                              <span className="text-sm text-muted-foreground w-24 flex-shrink-0">Mitigation:</span>
+                              <span className="font-medium text-sm" title={risk.mitigationStrategy}>
+                                {risk.mitigationStrategy || 'Not defined'}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </CardContent>

@@ -16,6 +16,7 @@ import {
   PricingScenario,
   FinancialModel,
   Competitor,
+  Risk,
   Comment,
   Task,
   Mention,
@@ -796,6 +797,49 @@ export const competitorsApi = {
 
   async delete(id: string): Promise<void> {
     const { error } = await supabase.from("competitors").delete().eq("id", id);
+
+    if (error) throw error;
+  },
+};
+
+// Risks API
+export const risksApi = {
+  async getByProjectId(projectId: string): Promise<Risk[]> {
+    const { data, error } = await supabase
+      .from("risks")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async create(risk: Omit<Risk, "id" | "created_at" | "updated_at">): Promise<Risk> {
+    const { data, error } = await supabase
+      .from("risks")
+      .insert(risk)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async update(id: string, updates: Partial<Risk>): Promise<Risk> {
+    const { data, error } = await supabase
+      .from("risks")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase.from("risks").delete().eq("id", id);
 
     if (error) throw error;
   },
