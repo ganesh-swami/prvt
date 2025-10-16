@@ -28,6 +28,8 @@ import AnalyticsDashboard from "./admin/AnalyticsDashboard";
 import OrgAnalyticsDashboard from "./admin/OrgAnalyticsDashboard";
 import { PricingModule } from "./modules/PricingModule";
 
+const TEMP_PROJECT_ID = "790b4b71-f138-47bc-bec1-8be804d7d8c4";
+
 export const MainContent: React.FC = () => {
   const { currentModule } = useAppContext();
 
@@ -50,9 +52,9 @@ export const MainContent: React.FC = () => {
       case "unit-economics":
         return <UnitEconomicsEnhanced />;
       case "financial":
-        return <FinancialModelerEnhanced />;
+        return <FinancialModelerEnhanced projectId={TEMP_PROJECT_ID} />;
       case "competitor-analysis":
-        return <CompetitorAnalysis />;
+        return <CompetitorAnalysis projectId={TEMP_PROJECT_ID} />;
       case "investor-room":
         return <InvestorRoom />;
       case "risk-center":

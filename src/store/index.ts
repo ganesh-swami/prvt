@@ -6,6 +6,8 @@ import ecosystemMapReducer from "./slices/stakeholdersSlice";
 import marketSizingReducer from "./slices/marketSizingSlice";
 import pricingLabReducer from "./slices/pricingLabSlice";
 import unitEconomicsReducer from "./slices/unitEconomicsSlice";
+import financialModelerReducer from "./slices/financialModelerSlice";
+import competitorsReducer from "./slices/competitorSlice";
 
 export const store = configureStore({
   reducer: {
@@ -16,6 +18,8 @@ export const store = configureStore({
     marketSizing: marketSizingReducer,
     pricingLab: pricingLabReducer,
     unitEconomics: unitEconomicsReducer,
+    financialModeler: financialModelerReducer,
+    competitors: competitorsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

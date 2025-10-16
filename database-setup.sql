@@ -753,6 +753,27 @@ CREATE POLICY "Users can manage tasks on projects they can edit" ON tasks
     )
   );
 
+-- Competitors policies
+DROP POLICY IF EXISTS "Users can view competitors for their projects" ON competitors;
+CREATE POLICY "Users can view competitors for their projects" ON competitors
+  FOR SELECT USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can manage competitors for their projects" ON competitors;
+CREATE POLICY "Users can manage competitors for their projects" ON competitors
+  FOR ALL USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  );
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_projects_owner_id ON projects(owner_id);
 CREATE INDEX IF NOT EXISTS idx_projects_updated_at ON projects(updated_at);
