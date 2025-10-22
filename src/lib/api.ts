@@ -1219,3 +1219,54 @@ export const draftsApi = {
     if (error) throw error;
   },
 };
+
+// GTM Plans API
+export const gtmPlansApi = {
+  async getByProjectId(projectId: string): Promise<any> {
+    const { data, error } = await supabase
+      .from("gtm_plans")
+      .select("*")
+      .eq("project_id", projectId)
+      .single();
+
+    if (error) {
+      // If no plan exists yet, return null
+      if (error.code === "PGRST116") return null;
+      throw error;
+    }
+    return data;
+  },
+
+  async create(plan: any): Promise<any> {
+    const { data, error } = await supabase
+      .from("gtm_plans")
+      .insert({
+        ...plan,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async update(id: string, updates: any): Promise<any> {
+    const { data, error } = await supabase
+      .from("gtm_plans")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase.from("gtm_plans").delete().eq("id", id);
+
+    if (error) throw error;
+  },
+};

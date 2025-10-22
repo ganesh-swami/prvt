@@ -1,16 +1,21 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { 
+  selectProductRoadmap, 
+  setProductRoadmapMetadata, 
+  setProductRoadmapStage 
+} from '@/store/slices/gtmPlannerSlice';
 
 interface ProductRoadmapProps {
   projectName: string;
 }
 
 export const ProductRoadmap: React.FC<ProductRoadmapProps> = ({ projectName }) => {
-  const [businessName, setBusinessName] = useState('[Zendesk]');
-  const [year, setYear] = useState('[2023]');
-  const [team, setTeam] = useState('[Marketing]');
+  const dispatch = useAppDispatch();
+  const productRoadmap = useAppSelector(selectProductRoadmap);
 
   const stages = [
     'Research', 'Idea generation', 'Prototype', 'Testing', 
@@ -34,24 +39,24 @@ export const ProductRoadmap: React.FC<ProductRoadmapProps> = ({ projectName }) =
           <div>
             <label className="text-sm font-medium">Business name:</label>
             <Input 
-              value={businessName} 
-              onChange={(e) => setBusinessName(e.target.value)}
+              value={productRoadmap.businessName} 
+              onChange={(e) => dispatch(setProductRoadmapMetadata({ businessName: e.target.value }))}
               className="mt-1"
             />
           </div>
           <div>
             <label className="text-sm font-medium">Year:</label>
             <Input 
-              value={year} 
-              onChange={(e) => setYear(e.target.value)}
+              value={productRoadmap.year} 
+              onChange={(e) => dispatch(setProductRoadmapMetadata({ year: e.target.value }))}
               className="mt-1"
             />
           </div>
           <div>
             <label className="text-sm font-medium">Team:</label>
             <Input 
-              value={team} 
-              onChange={(e) => setTeam(e.target.value)}
+              value={productRoadmap.team} 
+              onChange={(e) => dispatch(setProductRoadmapMetadata({ team: e.target.value }))}
               className="mt-1"
             />
           </div>
@@ -78,6 +83,12 @@ export const ProductRoadmap: React.FC<ProductRoadmapProps> = ({ projectName }) =
                     <td key={`${stage}-${quarter.name}`} className="border border-gray-300 p-3">
                       <Textarea 
                         placeholder="[Type here]"
+                        value={productRoadmap.stages[stage]?.[quarter.name] || ''}
+                        onChange={(e) => dispatch(setProductRoadmapStage({ 
+                          stage, 
+                          quarter: quarter.name, 
+                          content: e.target.value 
+                        }))}
                         className="min-h-[60px] text-sm"
                       />
                     </td>

@@ -1,39 +1,28 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { 
+  selectCompetitorAnalysis, 
+  setYourBusinessData, 
+  addCompetitor, 
+  removeCompetitor, 
+  updateCompetitor 
+} from '@/store/slices/gtmPlannerSlice';
 
 export const CompetitorAnalysis: React.FC = () => {
-  const [competitors, setCompetitors] = useState([
-    { id: 1, name: '[Competitor]' },
-    { id: 2, name: '[Competitor]' },
-    { id: 3, name: '[Competitor]' },
-    { id: 4, name: '[Competitor]' }
-  ]);
+  const dispatch = useAppDispatch();
+  const competitorAnalysis = useAppSelector(selectCompetitorAnalysis);
 
   const columns = [
-    'Target market',
-    'Product offerings', 
-    'What works?',
-    "What doesn't work?"
+    { label: 'Target market', key: 'targetMarket' as const },
+    { label: 'Product offerings', key: 'productOfferings' as const },
+    { label: 'What works?', key: 'whatWorks' as const },
+    { label: "What doesn't work?", key: 'whatDoesntWork' as const }
   ];
-
-  const addCompetitor = () => {
-    const newId = Math.max(...competitors.map(c => c.id)) + 1;
-    setCompetitors([...competitors, { id: newId, name: '[New Competitor]' }]);
-  };
-
-  const removeCompetitor = (id: number) => {
-    if (competitors.length > 1) {
-      setCompetitors(competitors.filter(c => c.id !== id));
-    }
-  };
-
-  const updateCompetitorName = (id: number, name: string) => {
-    setCompetitors(competitors.map(c => c.id === id ? { ...c, name } : c));
-  };
 
   return (
     <Card>
@@ -51,8 +40,8 @@ export const CompetitorAnalysis: React.FC = () => {
                   Businesses
                 </th>
                 {columns.map((column) => (
-                  <th key={column} className="border border-gray-300 p-3 bg-teal-800 text-white font-bold">
-                    {column}
+                  <th key={column.key} className="border border-gray-300 p-3 bg-teal-800 text-white font-bold">
+                    {column.label}
                   </th>
                 ))}
                 <th className="border border-gray-300 p-3 bg-teal-800 text-white w-12"></th>
@@ -64,28 +53,32 @@ export const CompetitorAnalysis: React.FC = () => {
                   [Your business]
                 </td>
                 {columns.map((column) => (
-                  <td key={`your-${column}`} className="border border-gray-300 p-3">
+                  <td key={`your-${column.key}`} className="border border-gray-300 p-3">
                     <Textarea 
                       placeholder="[Type here]"
+                      value={competitorAnalysis.yourBusiness[column.key]}
+                      onChange={(e) => dispatch(setYourBusinessData({ field: column.key, content: e.target.value }))}
                       className="min-h-[80px] text-sm"
                     />
                   </td>
                 ))}
                 <td className="border border-gray-300 p-3"></td>
               </tr>
-              {competitors.map((competitor) => (
+              {competitorAnalysis.competitors.map((competitor) => (
                 <tr key={competitor.id}>
                   <td className="border border-gray-300 p-3">
                     <Input
                       value={competitor.name}
-                      onChange={(e) => updateCompetitorName(competitor.id, e.target.value)}
+                      onChange={(e) => dispatch(updateCompetitor({ id: competitor.id, field: 'name', value: e.target.value }))}
                       className="font-medium"
                     />
                   </td>
                   {columns.map((column) => (
-                    <td key={`${competitor.id}-${column}`} className="border border-gray-300 p-3">
+                    <td key={`${competitor.id}-${column.key}`} className="border border-gray-300 p-3">
                       <Textarea 
                         placeholder="[Type here]"
+                        value={competitor[column.key]}
+                        onChange={(e) => dispatch(updateCompetitor({ id: competitor.id, field: column.key, value: e.target.value }))}
                         className="min-h-[80px] text-sm"
                       />
                     </td>
@@ -94,7 +87,7 @@ export const CompetitorAnalysis: React.FC = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => removeCompetitor(competitor.id)}
+                      onClick={() => dispatch(removeCompetitor(competitor.id))}
                       className="text-red-600 hover:text-red-800"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -107,7 +100,7 @@ export const CompetitorAnalysis: React.FC = () => {
         </div>
         
         <div className="mt-4">
-          <Button onClick={addCompetitor} variant="outline" size="sm">
+          <Button onClick={() => dispatch(addCompetitor())} variant="outline" size="sm">
             <Plus className="w-4 h-4 mr-2" />
             Add Competitor
           </Button>

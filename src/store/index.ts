@@ -9,6 +9,7 @@ import unitEconomicsReducer from "./slices/unitEconomicsSlice";
 import financialModelerReducer from "./slices/financialModelerSlice";
 import competitorsReducer from "./slices/competitorSlice";
 import risksReducer from "./slices/riskSlice";
+import gtmPlannerReducer from "./slices/gtmPlannerSlice";
 
 export const store = configureStore({
   reducer: {
@@ -22,6 +23,7 @@ export const store = configureStore({
     financialModeler: financialModelerReducer,
     competitors: competitorsReducer,
     risks: risksReducer,
+    gtmPlanner: gtmPlannerReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

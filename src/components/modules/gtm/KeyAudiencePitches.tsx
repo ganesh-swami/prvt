@@ -1,11 +1,16 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { selectKeyAudiencePitches, setKeyAudiencePitch } from '@/store/slices/gtmPlannerSlice';
 
 export const KeyAudiencePitches: React.FC = () => {
-  const pitches = [
+  const dispatch = useAppDispatch();
+  const pitches = useAppSelector(selectKeyAudiencePitches);
+  const pitchTypes = [
     {
       title: 'Appeal to leadership:',
+      key: 'leadership' as const,
       subtitle: 'Green light product development',
       points: [
         'Describe sales and marketing messaging',
@@ -19,6 +24,7 @@ export const KeyAudiencePitches: React.FC = () => {
     },
     {
       title: 'Appeal to donors and finance department:',
+      key: 'donorsFinance' as const,
       subtitle: 'Get funding for your new product',
       points: [
         'Explain the ROI',
@@ -30,6 +36,7 @@ export const KeyAudiencePitches: React.FC = () => {
     },
     {
       title: 'Appeal to your target audience:',
+      key: 'targetAudience' as const,
       subtitle: 'Sell your new product',
       points: [
         'Describe use cases for the product',
@@ -55,7 +62,7 @@ export const KeyAudiencePitches: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border border-gray-300">
-          {pitches.map((pitch, index) => (
+          {pitchTypes.map((pitch, index) => (
             <div key={index} className="border-r border-gray-300 last:border-r-0">
               <div className="bg-gray-100 p-4 border-b border-gray-300">
                 <h4 className="font-bold text-sm">{pitch.title}</h4>
@@ -76,6 +83,8 @@ export const KeyAudiencePitches: React.FC = () => {
                   <p className="text-xs text-gray-600 mb-2">Notes: [Type here]</p>
                   <Textarea 
                     placeholder="Enter your pitch notes here..."
+                    value={pitches[pitch.key]}
+                    onChange={(e) => dispatch(setKeyAudiencePitch({ type: pitch.key, content: e.target.value }))}
                     className="min-h-[100px] text-xs border-0 p-0 resize-none focus:ring-0 bg-transparent"
                   />
                 </div>

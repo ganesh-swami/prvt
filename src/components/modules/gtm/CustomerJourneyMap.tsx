@@ -1,15 +1,19 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { selectCustomerJourneyMap, setCustomerJourneyMapCell } from '@/store/slices/gtmPlannerSlice';
 
 export const CustomerJourneyMap: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const journeyMap = useAppSelector(selectCustomerJourneyMap);
   const stages = ['Awareness', 'Consideration', 'Purchase', 'Retention', 'Advocacy'];
   const categories = [
-    'Touchpoints',
-    'Departments', 
-    'Customer feelings',
-    'Pain points',
-    'Opportunities'
+    { label: 'Touchpoints', key: 'touchpoints' as const },
+    { label: 'Departments', key: 'departments' as const },
+    { label: 'Customer feelings', key: 'customerFeelings' as const },
+    { label: 'Pain points', key: 'painPoints' as const },
+    { label: 'Opportunities', key: 'opportunities' as const }
   ];
 
   return (
@@ -39,14 +43,16 @@ export const CustomerJourneyMap: React.FC = () => {
             </thead>
             <tbody>
               {categories.map((category) => (
-                <tr key={category}>
+                <tr key={category.key}>
                   <td className="border border-gray-300 p-3 bg-gray-50 font-medium">
-                    {category}
+                    {category.label}
                   </td>
                   {stages.map((stage) => (
-                    <td key={`${category}-${stage}`} className="border border-gray-300 p-2">
+                    <td key={`${category.key}-${stage}`} className="border border-gray-300 p-2">
                       <Textarea 
                         placeholder="[Type here]"
+                        value={journeyMap[category.key][stage]}
+                        onChange={(e) => dispatch(setCustomerJourneyMapCell({ category: category.key, stage, content: e.target.value }))}
                         className="min-h-[80px] text-sm border-0 p-1 resize-none"
                       />
                     </td>

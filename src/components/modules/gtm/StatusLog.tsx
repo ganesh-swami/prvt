@@ -1,35 +1,16 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { selectStatusLog, addStatusLogEntry, removeStatusLogEntry, updateStatusLogEntry } from '@/store/slices/gtmPlannerSlice';
 
 export const StatusLog: React.FC = () => {
-  const [entries, setEntries] = useState([
-    { id: 1, teamLead: '', team: '', department: '', tasks: '', deadline: '', status: false, notes: '' },
-    { id: 2, teamLead: '', team: '', department: '', tasks: '', deadline: '', status: false, notes: '' },
-    { id: 3, teamLead: '', team: '', department: '', tasks: '', deadline: '', status: false, notes: '' },
-    { id: 4, teamLead: '', team: '', department: '', tasks: '', deadline: '', status: false, notes: '' },
-    { id: 5, teamLead: '', team: '', department: '', tasks: '', deadline: '', status: false, notes: '' }
-  ]);
+  const dispatch = useAppDispatch();
+  const statusLog = useAppSelector(selectStatusLog);
 
-  const addEntry = () => {
-    const newId = Math.max(...entries.map(e => e.id)) + 1;
-    setEntries([...entries, { 
-      id: newId, teamLead: '', team: '', department: '', tasks: '', deadline: '', status: false, notes: '' 
-    }]);
-  };
-
-  const removeEntry = (id: number) => {
-    if (entries.length > 1) {
-      setEntries(entries.filter(e => e.id !== id));
-    }
-  };
-
-  const updateEntry = (id: number, field: string, value: any) => {
-    setEntries(entries.map(e => e.id === id ? { ...e, [field]: value } : e));
-  };
 
   return (
     <Card>
@@ -57,13 +38,13 @@ export const StatusLog: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {entries.map((entry) => (
+              {statusLog.entries.map((entry) => (
                 <tr key={entry.id}>
                   <td className="border border-gray-300 p-2">
                     <Input
                       placeholder="[Type here]"
                       value={entry.teamLead}
-                      onChange={(e) => updateEntry(entry.id, 'teamLead', e.target.value)}
+                      onChange={(e) => dispatch(updateStatusLogEntry({ id: entry.id, field: 'teamLead', value: e.target.value }))}
                       className="text-sm border-0 p-1"
                     />
                   </td>
@@ -71,7 +52,7 @@ export const StatusLog: React.FC = () => {
                     <Input
                       placeholder="[Type here]"
                       value={entry.team}
-                      onChange={(e) => updateEntry(entry.id, 'team', e.target.value)}
+                      onChange={(e) => dispatch(updateStatusLogEntry({ id: entry.id, field: 'team', value: e.target.value }))}
                       className="text-sm border-0 p-1"
                     />
                   </td>
@@ -79,7 +60,7 @@ export const StatusLog: React.FC = () => {
                     <Input
                       placeholder="[Type here]"
                       value={entry.department}
-                      onChange={(e) => updateEntry(entry.id, 'department', e.target.value)}
+                      onChange={(e) => dispatch(updateStatusLogEntry({ id: entry.id, field: 'department', value: e.target.value }))}
                       className="text-sm border-0 p-1"
                     />
                   </td>
@@ -87,7 +68,7 @@ export const StatusLog: React.FC = () => {
                     <Input
                       placeholder="[Type here]"
                       value={entry.tasks}
-                      onChange={(e) => updateEntry(entry.id, 'tasks', e.target.value)}
+                      onChange={(e) => dispatch(updateStatusLogEntry({ id: entry.id, field: 'tasks', value: e.target.value }))}
                       className="text-sm border-0 p-1"
                     />
                   </td>
@@ -95,21 +76,21 @@ export const StatusLog: React.FC = () => {
                     <Input
                       placeholder="[Type here]"
                       value={entry.deadline}
-                      onChange={(e) => updateEntry(entry.id, 'deadline', e.target.value)}
+                      onChange={(e) => dispatch(updateStatusLogEntry({ id: entry.id, field: 'deadline', value: e.target.value }))}
                       className="text-sm border-0 p-1"
                     />
                   </td>
                   <td className="border border-gray-300 p-3 text-center">
                     <Checkbox
                       checked={entry.status}
-                      onCheckedChange={(checked) => updateEntry(entry.id, 'status', checked)}
+                      onCheckedChange={(checked) => dispatch(updateStatusLogEntry({ id: entry.id, field: 'status', value: checked }))}
                     />
                   </td>
                   <td className="border border-gray-300 p-2">
                     <Input
                       placeholder="[Type here]"
                       value={entry.notes}
-                      onChange={(e) => updateEntry(entry.id, 'notes', e.target.value)}
+                      onChange={(e) => dispatch(updateStatusLogEntry({ id: entry.id, field: 'notes', value: e.target.value }))}
                       className="text-sm border-0 p-1"
                     />
                   </td>
@@ -117,7 +98,7 @@ export const StatusLog: React.FC = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => removeEntry(entry.id)}
+                      onClick={() => dispatch(removeStatusLogEntry(entry.id))}
                       className="text-red-600 hover:text-red-800 p-1"
                     >
                       <Trash2 className="w-3 h-3" />
@@ -130,7 +111,7 @@ export const StatusLog: React.FC = () => {
         </div>
         
         <div className="mt-4">
-          <Button onClick={addEntry} variant="outline" size="sm">
+          <Button onClick={() => dispatch(addStatusLogEntry())} variant="outline" size="sm">
             <Plus className="w-4 h-4 mr-2" />
             Add Entry
           </Button>

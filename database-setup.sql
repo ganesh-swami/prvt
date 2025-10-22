@@ -323,6 +323,32 @@ CREATE TABLE IF NOT EXISTS public.risks (
   CONSTRAINT risks_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE
 );
 
+-- GTM Plans table
+CREATE TABLE IF NOT EXISTS public.gtm_plans (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL,
+  name text NOT NULL DEFAULT 'GTM Plan',
+  product_roadmap jsonb DEFAULT '{}'::jsonb,
+  customer_pain_points jsonb DEFAULT '{}'::jsonb,
+  competitor_analysis jsonb DEFAULT '{}'::jsonb,
+  swot_analysis jsonb DEFAULT '{}'::jsonb,
+  product_concept jsonb DEFAULT '{}'::jsonb,
+  key_audience_pitches jsonb DEFAULT '{}'::jsonb,
+  launch_goals_kpis jsonb DEFAULT '{}'::jsonb,
+  status_log jsonb DEFAULT '{}'::jsonb,
+  customer_journey_map jsonb DEFAULT '{}'::jsonb,
+  promotions_checklist jsonb DEFAULT '{}'::jsonb,
+  outreach_channels jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT gtm_plans_pkey PRIMARY KEY (id),
+  CONSTRAINT gtm_plans_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE,
+  CONSTRAINT gtm_plans_project_id_unique UNIQUE (project_id)
+);
+
+-- Create index for faster project lookups
+CREATE INDEX IF NOT EXISTS idx_gtm_plans_project_id ON public.gtm_plans(project_id);
+
 -- Comments table
 CREATE TABLE IF NOT EXISTS public.comments (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -496,6 +522,7 @@ ALTER TABLE pricing_scenarios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE financial_models ENABLE ROW LEVEL SECURITY;
 ALTER TABLE competitors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE risks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gtm_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
@@ -805,6 +832,27 @@ CREATE POLICY "Users can view risks for their projects" ON risks
 
 DROP POLICY IF EXISTS "Users can manage risks for their projects" ON risks;
 CREATE POLICY "Users can manage risks for their projects" ON risks
+  FOR ALL USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  );
+
+-- GTM Plans policies
+DROP POLICY IF EXISTS "Users can view gtm plans for their projects" ON gtm_plans;
+CREATE POLICY "Users can view gtm plans for their projects" ON gtm_plans
+  FOR SELECT USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can manage gtm plans for their projects" ON gtm_plans;
+CREATE POLICY "Users can manage gtm plans for their projects" ON gtm_plans
   FOR ALL USING (
     project_id IN (
       SELECT id FROM projects 

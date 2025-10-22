@@ -1,37 +1,23 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { selectProductConcept, addProductIdea, removeProductIdea, updateProductIdea } from '@/store/slices/gtmPlannerSlice';
 
 export const ProductConcept: React.FC = () => {
-  const [ideas, setIdeas] = useState([
-    { id: 1, name: 'Idea #1' },
-    { id: 2, name: 'Idea #2' },
-    { id: 3, name: 'Idea #3' },
-    { id: 4, name: 'Idea #4' },
-    { id: 5, name: 'Idea #5' }
-  ]);
+  const dispatch = useAppDispatch();
+  const productConcept = useAppSelector(selectProductConcept);
 
   const columns = [
-    'Product name',
-    'Description', 
-    'Pain point / Solution',
-    'Competitor notes',
-    'Important features',
-    'Unique selling proposition (USP)'
+    { label: 'Product name', key: 'productName' as const },
+    { label: 'Description', key: 'description' as const },
+    { label: 'Pain point / Solution', key: 'painPointSolution' as const },
+    { label: 'Competitor notes', key: 'competitorNotes' as const },
+    { label: 'Important features', key: 'importantFeatures' as const },
+    { label: 'Unique selling proposition (USP)', key: 'usp' as const }
   ];
-
-  const addIdea = () => {
-    const newId = Math.max(...ideas.map(i => i.id)) + 1;
-    setIdeas([...ideas, { id: newId, name: `Idea #${newId}` }]);
-  };
-
-  const removeIdea = (id: number) => {
-    if (ideas.length > 1) {
-      setIdeas(ideas.filter(i => i.id !== id));
-    }
-  };
 
   return (
     <Card>
@@ -48,23 +34,25 @@ export const ProductConcept: React.FC = () => {
               <tr>
                 <th className="border border-gray-300 p-3 bg-white font-medium w-24"></th>
                 {columns.map((column) => (
-                  <th key={column} className="border border-gray-300 p-3 bg-yellow-400 text-black font-bold text-sm">
-                    {column}
+                  <th key={column.key} className="border border-gray-300 p-3 bg-yellow-400 text-black font-bold text-sm">
+                    {column.label}
                   </th>
                 ))}
                 <th className="border border-gray-300 p-3 bg-white w-12"></th>
               </tr>
             </thead>
             <tbody>
-              {ideas.map((idea) => (
+              {productConcept.ideas.map((idea) => (
                 <tr key={idea.id}>
                   <td className="border border-gray-300 p-3 bg-gray-50 font-medium text-sm">
                     {idea.name}
                   </td>
                   {columns.map((column) => (
-                    <td key={`${idea.id}-${column}`} className="border border-gray-300 p-2">
+                    <td key={`${idea.id}-${column.key}`} className="border border-gray-300 p-2">
                       <Textarea 
                         placeholder="[Type here]"
+                        value={idea[column.key]}
+                        onChange={(e) => dispatch(updateProductIdea({ id: idea.id, field: column.key, value: e.target.value }))}
                         className="min-h-[60px] text-xs resize-none border-0 p-1"
                       />
                     </td>
@@ -73,7 +61,7 @@ export const ProductConcept: React.FC = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => removeIdea(idea.id)}
+                      onClick={() => dispatch(removeProductIdea(idea.id))}
                       className="text-red-600 hover:text-red-800 p-1"
                     >
                       <Trash2 className="w-3 h-3" />
@@ -86,7 +74,7 @@ export const ProductConcept: React.FC = () => {
         </div>
         
         <div className="mt-4 flex justify-between items-center">
-          <Button onClick={addIdea} variant="outline" size="sm">
+          <Button onClick={() => dispatch(addProductIdea())} variant="outline" size="sm">
             <Plus className="w-4 h-4 mr-2" />
             Add Idea
           </Button>

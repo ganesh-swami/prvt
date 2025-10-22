@@ -66,7 +66,7 @@ export const MainContent: React.FC = () => {
       case "team-collaboration":
         return <TeamCollaboration />;
       case "gtm":
-        return <GTMPlanner />;
+        return <GTMPlanner projectId={TEMP_PROJECT_ID} />;
       case "templates":
         return <TemplateMarketplace />;
       case "creator-portal":

@@ -1,13 +1,17 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { selectCustomerPainPoints, setCustomerPainPoint } from '@/store/slices/gtmPlannerSlice';
 
 export const CustomerPainPoints: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const painPoints = useAppSelector(selectCustomerPainPoints);
   const categories = [
-    { name: 'Productivity', description: 'Time-wasting processes or inefficient workflows' },
-    { name: 'Financial', description: 'Cost-related issues or budget constraints' },
-    { name: 'Process', description: 'Complicated or unclear procedures' },
-    { name: 'Support', description: 'Lack of help or guidance when needed' }
+    { name: 'Productivity', key: 'productivity' as const, description: 'Time-wasting processes or inefficient workflows' },
+    { name: 'Financial', key: 'financial' as const, description: 'Cost-related issues or budget constraints' },
+    { name: 'Process', key: 'process' as const, description: 'Complicated or unclear procedures' },
+    { name: 'Support', key: 'support' as const, description: 'Lack of help or guidance when needed' }
   ];
 
   return (
@@ -41,6 +45,8 @@ export const CustomerPainPoints: React.FC = () => {
                   <td className="border border-gray-300 p-3">
                     <Textarea 
                       placeholder="[Type here]"
+                      value={painPoints[category.key]}
+                      onChange={(e) => dispatch(setCustomerPainPoint({ category: category.key, content: e.target.value }))}
                       className="min-h-[120px] w-full resize-none"
                     />
                   </td>

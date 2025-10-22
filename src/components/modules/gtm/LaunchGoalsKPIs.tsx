@@ -1,26 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { selectLaunchGoalsKPIs, addLaunchGoal, removeLaunchGoal, updateLaunchGoal } from '@/store/slices/gtmPlannerSlice';
 
 export const LaunchGoalsKPIs: React.FC = () => {
-  const [goals, setGoals] = useState([
-    { id: 1, name: 'Goal #1' },
-    { id: 2, name: 'Goal #2' },
-    { id: 3, name: 'Goal #3' }
-  ]);
+  const dispatch = useAppDispatch();
+  const goalsKPIs = useAppSelector(selectLaunchGoalsKPIs);
 
-  const addGoal = () => {
-    const newId = Math.max(...goals.map(g => g.id)) + 1;
-    setGoals([...goals, { id: newId, name: `Goal #${newId}` }]);
-  };
-
-  const removeGoal = (id: number) => {
-    if (goals.length > 1) {
-      setGoals(goals.filter(g => g.id !== id));
-    }
-  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -49,7 +38,7 @@ export const LaunchGoalsKPIs: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {goals.map((goal) => (
+                {goalsKPIs.goals.map((goal) => (
                   <tr key={goal.id}>
                     <td className="border border-gray-300 p-3 bg-gray-50 font-medium align-top">
                       <div className="flex justify-between items-start">
@@ -57,7 +46,7 @@ export const LaunchGoalsKPIs: React.FC = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => removeGoal(goal.id)}
+                          onClick={() => dispatch(removeLaunchGoal(goal.id))}
                           className="text-red-600 hover:text-red-800 p-1 ml-2"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -67,12 +56,16 @@ export const LaunchGoalsKPIs: React.FC = () => {
                     <td className="border border-gray-300 p-2">
                       <Textarea 
                         placeholder="[Type here]"
+                        value={goal.kpi1}
+                        onChange={(e) => dispatch(updateLaunchGoal({ id: goal.id, field: 'kpi1', value: e.target.value }))}
                         className="min-h-[80px] text-sm border-0 p-1 resize-none"
                       />
                     </td>
                     <td className="border border-gray-300 p-2">
                       <Textarea 
                         placeholder="[Type here]"
+                        value={goal.kpi2}
+                        onChange={(e) => dispatch(updateLaunchGoal({ id: goal.id, field: 'kpi2', value: e.target.value }))}
                         className="min-h-[80px] text-sm border-0 p-1 resize-none"
                       />
                     </td>
@@ -83,7 +76,7 @@ export const LaunchGoalsKPIs: React.FC = () => {
           </div>
           
           <div className="mt-4">
-            <Button onClick={addGoal} variant="outline" size="sm">
+            <Button onClick={() => dispatch(addLaunchGoal())} variant="outline" size="sm">
               <Plus className="w-4 h-4 mr-2" />
               Add Goal
             </Button>

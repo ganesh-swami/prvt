@@ -1,29 +1,37 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { selectSWOTAnalysis, setSWOTSection } from '@/store/slices/gtmPlannerSlice';
 
 export const SWOTAnalysis: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const swotAnalysis = useAppSelector(selectSWOTAnalysis);
   const swotSections = [
     {
       title: 'Strengths',
+      key: 'strengths' as const,
       description: 'What attributes does your product have that give it a competitive advantage? (e.g., innovative features, scalability, etc.)',
       bgColor: 'bg-yellow-400',
       textColor: 'text-black'
     },
     {
-      title: 'Weaknesses', 
+      title: 'Weaknesses',
+      key: 'weaknesses' as const,
       description: 'What factors about your product could weaken its competitive advantage? (e.g., price, lack of features, etc.)',
       bgColor: 'bg-yellow-400',
       textColor: 'text-black'
     },
     {
       title: 'Opportunities',
+      key: 'opportunities' as const,
       description: 'What opportunities do you foresee that may aid in the success of this product? (e.g., heightened demand, industry trends, etc.)',
       bgColor: 'bg-yellow-400',
       textColor: 'text-black'
     },
     {
       title: 'Threats',
+      key: 'threats' as const,
       description: 'What factors could threaten the success of your product launch? (e.g., taxes, issues with trademarking original ideas, etc.)',
       bgColor: 'bg-yellow-400', 
       textColor: 'text-black'
@@ -53,6 +61,8 @@ export const SWOTAnalysis: React.FC = () => {
                   <p className="text-sm text-gray-600 mb-2">Notes: [Type here]</p>
                   <Textarea 
                     placeholder="Enter your analysis here..."
+                    value={swotAnalysis[section.key].analysis}
+                    onChange={(e) => dispatch(setSWOTSection({ section: section.key, field: 'analysis', content: e.target.value }))}
                     className="min-h-[120px] border-0 p-0 resize-none focus:ring-0"
                   />
                 </div>
