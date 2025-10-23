@@ -1,7 +1,12 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle } from 'lucide-react';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import {
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  CheckCircle,
+} from "lucide-react";
 
 interface AnalysisProps {
   results: {
@@ -18,15 +23,37 @@ interface AnalysisProps {
 }
 
 const UnitEconomicsAnalysis: React.FC<AnalysisProps> = ({ results }) => {
-  const getHealthIndicator = (value: number, thresholds: { good: number; fair: number }) => {
-    if (value >= thresholds.good) return { icon: CheckCircle, color: 'text-green-600', status: 'Excellent' };
-    if (value >= thresholds.fair) return { icon: TrendingUp, color: 'text-yellow-600', status: 'Good' };
-    return { icon: AlertTriangle, color: 'text-red-600', status: 'Needs Improvement' };
+  const getHealthIndicator = (
+    value: number,
+    thresholds: { good: number; fair: number }
+  ) => {
+    if (value >= thresholds.good)
+      return {
+        icon: CheckCircle,
+        color: "text-green-600",
+        status: "Excellent",
+      };
+    if (value >= thresholds.fair)
+      return { icon: TrendingUp, color: "text-yellow-600", status: "Good" };
+    return {
+      icon: AlertTriangle,
+      color: "text-red-600",
+      status: "Needs Improvement",
+    };
   };
 
-  const ltvCacHealth = getHealthIndicator(results.ltvCacRatio, { good: 3, fair: 2 });
-  const retentionHealth = getHealthIndicator(results.retentionRate, { good: 80, fair: 60 });
-  const paybackHealth = getHealthIndicator(12 - results.paybackPeriod, { good: 6, fair: 3 });
+  const ltvCacHealth = getHealthIndicator(results.ltvCacRatio, {
+    good: 3,
+    fair: 2,
+  });
+  const retentionHealth = getHealthIndicator(results.retentionRate, {
+    good: 80,
+    fair: 60,
+  });
+  const paybackHealth = getHealthIndicator(12 - results.paybackPeriod, {
+    good: 6,
+    fair: 3,
+  });
 
   return (
     <div className="space-y-6 mt-6">
@@ -48,14 +75,19 @@ const UnitEconomicsAnalysis: React.FC<AnalysisProps> = ({ results }) => {
               {results.ltvCacRatio.toFixed(1)}:1
             </div>
             <p className="text-xs text-gray-600">{ltvCacHealth.status}</p>
-            <Progress value={Math.min(results.ltvCacRatio * 20, 100)} className="h-2 mt-2" />
+            <Progress
+              value={Math.min(results.ltvCacRatio * 20, 100)}
+              className="h-2 mt-2"
+            />
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <retentionHealth.icon className={`h-4 w-4 ${retentionHealth.color}`} />
+              <retentionHealth.icon
+                className={`h-4 w-4 ${retentionHealth.color}`}
+              />
               Retention Score
             </CardTitle>
           </CardHeader>
@@ -71,7 +103,9 @@ const UnitEconomicsAnalysis: React.FC<AnalysisProps> = ({ results }) => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <paybackHealth.icon className={`h-4 w-4 ${paybackHealth.color}`} />
+              <paybackHealth.icon
+                className={`h-4 w-4 ${paybackHealth.color}`}
+              />
               Payback Efficiency
             </CardTitle>
           </CardHeader>
@@ -80,7 +114,10 @@ const UnitEconomicsAnalysis: React.FC<AnalysisProps> = ({ results }) => {
               {results.paybackPeriod.toFixed(1)}m
             </div>
             <p className="text-xs text-gray-600">{paybackHealth.status}</p>
-            <Progress value={Math.max(0, 100 - (results.paybackPeriod * 8))} className="h-2 mt-2" />
+            <Progress
+              value={Math.max(0, 100 - results.paybackPeriod * 8)}
+              className="h-2 mt-2"
+            />
           </CardContent>
         </Card>
       </div>
@@ -92,16 +129,24 @@ const UnitEconomicsAnalysis: React.FC<AnalysisProps> = ({ results }) => {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Annual Recurring Revenue</span>
-              <span className="font-semibold">${results.arr.toLocaleString()}</span>
+              <span className="text-sm text-gray-600">
+                Annual Recurring Revenue
+              </span>
+              <span className="font-semibold">
+                ${results.arr.toLocaleString()}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-600">Total Revenue</span>
-              <span className="font-semibold">${results.totalRevenue.toLocaleString()}</span>
+              <span className="font-semibold">
+                ${results.totalRevenue.toLocaleString()}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-600">Gross Profit</span>
-              <span className="font-semibold">${results.grossProfit.toLocaleString()}</span>
+              <span className="font-semibold">
+                ${results.grossProfit.toLocaleString()}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -113,13 +158,23 @@ const UnitEconomicsAnalysis: React.FC<AnalysisProps> = ({ results }) => {
           <CardContent className="space-y-3">
             <div className="flex justify-between">
               <span className="text-sm text-gray-600">Unit Profitability</span>
-              <span className={`font-semibold ${results.unitProfitability >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <span
+                className={`font-semibold ${
+                  results.unitProfitability >= 0
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
+              >
                 ${results.unitProfitability.toFixed(2)}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Gross Margin per Lifespan</span>
-              <span className="font-semibold">${results.grossMarginPerLifespan.toFixed(2)}</span>
+              <span className="text-sm text-gray-600">
+                Gross Margin per Lifespan
+              </span>
+              <span className="font-semibold">
+                ${results.grossMarginPerLifespan.toFixed(2)}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-600">Customer LTV</span>

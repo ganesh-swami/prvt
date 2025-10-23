@@ -136,6 +136,12 @@ const menuItems: MenuItem[] = [
     id: "drafts-and-plans",
     category: "collaboration",
   },
+  {
+    icon: FileText,
+    label: "Projects",
+    id: "projects",
+    category: "collaboration",
+  },
   { icon: Package, label: "Templates", id: "templates", category: "resources" },
   {
     icon: CreditCard,

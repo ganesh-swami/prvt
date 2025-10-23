@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS public.organizations (
   CONSTRAINT organizations_pkey PRIMARY KEY (id)
 );
 
--- Organization members table
+-- useless (looks like) Organization members table
 CREATE TABLE IF NOT EXISTS public.org_members (
   org_id uuid NOT NULL,
   user_id uuid NOT NULL,
@@ -289,6 +289,48 @@ CREATE TABLE IF NOT EXISTS public.financial_models (
   CONSTRAINT financial_models_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE
 );
 
+-- Market sizing table
+CREATE TABLE IF NOT EXISTS public.market_sizing (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  project_id uuid NOT NULL,
+  market_data jsonb,
+  approach text,
+  value_unit text,
+  results jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT market_sizing_pkey PRIMARY KEY (id),
+  CONSTRAINT market_sizing_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE
+);
+
+-- Pricing lab table
+CREATE TABLE IF NOT EXISTS public.pricing_lab (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  project_id uuid NOT NULL,
+  pricing_data jsonb,
+  strategy text,
+  results jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT pricing_lab_pkey PRIMARY KEY (id),
+  CONSTRAINT pricing_lab_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE
+);
+
+-- Unit economics table
+CREATE TABLE IF NOT EXISTS public.unit_economics (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  project_id uuid NOT NULL,
+  metrics jsonb,
+  results jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT unit_economics_pkey PRIMARY KEY (id),
+  CONSTRAINT unit_economics_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE
+);
+
 -- Competitors table
 CREATE TABLE IF NOT EXISTS public.competitors (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -520,6 +562,9 @@ ALTER TABLE ecosystem_map_task ENABLE ROW LEVEL SECURITY;
 ALTER TABLE market_assumptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pricing_scenarios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE financial_models ENABLE ROW LEVEL SECURITY;
+ALTER TABLE market_sizing ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pricing_lab ENABLE ROW LEVEL SECURITY;
+ALTER TABLE unit_economics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE competitors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE risks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gtm_plans ENABLE ROW LEVEL SECURITY;
@@ -798,6 +843,151 @@ CREATE POLICY "Users can manage tasks on projects they can edit" ON tasks
     )
   );
 
+-- Market sizing policies
+DROP POLICY IF EXISTS "Users can view market sizing for their projects" ON market_sizing;
+DROP POLICY IF EXISTS "Users can manage market sizing for their projects" ON market_sizing;
+CREATE POLICY "Users can view market sizing for their projects" ON market_sizing
+  FOR SELECT USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can create market sizing for their projects" ON market_sizing;
+CREATE POLICY "Users can create market sizing for their projects" ON market_sizing
+  FOR INSERT WITH CHECK (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can update market sizing for their projects" ON market_sizing;
+CREATE POLICY "Users can update market sizing for their projects" ON market_sizing
+  FOR UPDATE USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  )
+  WITH CHECK (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can delete market sizing for their projects" ON market_sizing;
+CREATE POLICY "Users can delete market sizing for their projects" ON market_sizing
+  FOR DELETE USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  );
+
+-- Pricing lab policies
+DROP POLICY IF EXISTS "Users can view pricing lab for their projects" ON pricing_lab;
+CREATE POLICY "Users can view pricing lab for their projects" ON pricing_lab
+  FOR SELECT USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can create pricing lab for their projects" ON pricing_lab;
+CREATE POLICY "Users can create pricing lab for their projects" ON pricing_lab
+  FOR INSERT WITH CHECK (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can update pricing lab for their projects" ON pricing_lab;
+CREATE POLICY "Users can update pricing lab for their projects" ON pricing_lab
+  FOR UPDATE USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  )
+  WITH CHECK (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can delete pricing lab for their projects" ON pricing_lab;
+CREATE POLICY "Users can delete pricing lab for their projects" ON pricing_lab
+  FOR DELETE USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  );
+
+-- Unit economics policies
+DROP POLICY IF EXISTS "Users can view unit economics for their projects" ON unit_economics;
+CREATE POLICY "Users can view unit economics for their projects" ON unit_economics
+  FOR SELECT USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can create unit economics for their projects" ON unit_economics;
+CREATE POLICY "Users can create unit economics for their projects" ON unit_economics
+  FOR INSERT WITH CHECK (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can update unit economics for their projects" ON unit_economics;
+CREATE POLICY "Users can update unit economics for their projects" ON unit_economics
+  FOR UPDATE USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  )
+  WITH CHECK (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can delete unit economics for their projects" ON unit_economics;
+CREATE POLICY "Users can delete unit economics for their projects" ON unit_economics
+  FOR DELETE USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  );
+
 -- Competitors policies
 DROP POLICY IF EXISTS "Users can view competitors for their projects" ON competitors;
 CREATE POLICY "Users can view competitors for their projects" ON competitors
@@ -868,6 +1058,9 @@ CREATE INDEX IF NOT EXISTS idx_business_plans_project_id ON business_plans(proje
 CREATE INDEX IF NOT EXISTS idx_market_assumptions_project_id ON market_assumptions(project_id);
 CREATE INDEX IF NOT EXISTS idx_pricing_scenarios_project_id ON pricing_scenarios(project_id);
 CREATE INDEX IF NOT EXISTS idx_financial_models_project_id ON financial_models(project_id);
+CREATE INDEX IF NOT EXISTS idx_market_sizing_project_id ON market_sizing(project_id);
+CREATE INDEX IF NOT EXISTS idx_pricing_lab_project_id ON pricing_lab(project_id);
+CREATE INDEX IF NOT EXISTS idx_unit_economics_project_id ON unit_economics(project_id);
 CREATE INDEX IF NOT EXISTS idx_competitors_project_id ON competitors(project_id);
 CREATE INDEX IF NOT EXISTS idx_risks_project_id ON risks(project_id);
 CREATE INDEX IF NOT EXISTS idx_comments_project_id ON comments(project_id);
@@ -908,6 +1101,232 @@ INSERT INTO projects (id, name, description, owner_id, status)
 VALUES ('550e8400-e29b-41d4-a716-446655440002', 'Demo Project', 'A sample project for testing', '550e8400-e29b-41d4-a716-446655440000', 'active')
 ON CONFLICT (id) DO NOTHING;
 */
+
+-- Function to create default project for new users
+CREATE OR REPLACE FUNCTION create_default_project_for_user()
+RETURNS TRIGGER AS $$
+DECLARE
+  new_project_id uuid;
+BEGIN
+  -- Create a default project for the new user
+  INSERT INTO public.projects (name, description, owner_id, status)
+  VALUES (
+    'My First Project',
+    'Welcome to PF_Strategize! This is your default project to get started.',
+    NEW.id,
+    'active'
+  )
+  RETURNING id INTO new_project_id;
+
+  -- Automatically add the user as the project owner in collaborators
+  INSERT INTO public.project_collaborators (project_id, user_id, role)
+  VALUES (new_project_id, NEW.id, 'owner');
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to run the function when a new user is created
+DROP TRIGGER IF EXISTS create_default_project_trigger ON public.users;
+CREATE TRIGGER create_default_project_trigger
+  AFTER INSERT ON public.users
+  FOR EACH ROW
+  EXECUTE FUNCTION create_default_project_for_user();
+
+-- Team Collaboration: Discussions table
+CREATE TABLE IF NOT EXISTS public.team_discussions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL,
+  title text NOT NULL,
+  content text NOT NULL,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT team_discussions_pkey PRIMARY KEY (id),
+  CONSTRAINT team_discussions_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE,
+  CONSTRAINT team_discussions_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_team_discussions_project_id ON public.team_discussions(project_id);
+CREATE INDEX IF NOT EXISTS idx_team_discussions_created_by ON public.team_discussions(created_by);
+
+-- Team Collaboration: Discussion Comments table
+CREATE TABLE IF NOT EXISTS public.discussion_comments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  discussion_id uuid NOT NULL,
+  project_id uuid NOT NULL,
+  content text NOT NULL,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT discussion_comments_pkey PRIMARY KEY (id),
+  CONSTRAINT discussion_comments_discussion_id_fkey FOREIGN KEY (discussion_id) REFERENCES public.team_discussions(id) ON DELETE CASCADE,
+  CONSTRAINT discussion_comments_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE,
+  CONSTRAINT discussion_comments_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_discussion_comments_discussion_id ON public.discussion_comments(discussion_id);
+CREATE INDEX IF NOT EXISTS idx_discussion_comments_project_id ON public.discussion_comments(project_id);
+
+-- Team Collaboration: Tasks table (separate from ecosystem map tasks)
+CREATE TABLE IF NOT EXISTS public.team_tasks (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL,
+  title text NOT NULL,
+  description text,
+  status text DEFAULT 'todo'::text CHECK (status = ANY (ARRAY['todo'::text, 'in_progress'::text, 'completed'::text])),
+  priority text DEFAULT 'medium'::text CHECK (priority = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])),
+  due_date timestamp with time zone,
+  assigned_to uuid,
+  created_by uuid NOT NULL,
+  completed_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT team_tasks_pkey PRIMARY KEY (id),
+  CONSTRAINT team_tasks_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE,
+  CONSTRAINT team_tasks_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES public.users(id) ON DELETE SET NULL,
+  CONSTRAINT team_tasks_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_team_tasks_project_id ON public.team_tasks(project_id);
+CREATE INDEX IF NOT EXISTS idx_team_tasks_assigned_to ON public.team_tasks(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_team_tasks_status ON public.team_tasks(status);
+
+-- Team Collaboration: Activities table
+CREATE TABLE IF NOT EXISTS public.team_activities (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL,
+  activity_type text NOT NULL CHECK (activity_type = ANY (ARRAY['task_created'::text, 'task_completed'::text, 'task_updated'::text, 'discussion_created'::text, 'comment_created'::text])),
+  entity_id uuid NOT NULL,
+  entity_type text NOT NULL CHECK (entity_type = ANY (ARRAY['task'::text, 'discussion'::text, 'comment'::text])),
+  user_id uuid NOT NULL,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT team_activities_pkey PRIMARY KEY (id),
+  CONSTRAINT team_activities_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE,
+  CONSTRAINT team_activities_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_team_activities_project_id ON public.team_activities(project_id);
+CREATE INDEX IF NOT EXISTS idx_team_activities_user_id ON public.team_activities(user_id);
+CREATE INDEX IF NOT EXISTS idx_team_activities_activity_type ON public.team_activities(activity_type);
+CREATE INDEX IF NOT EXISTS idx_team_activities_created_at ON public.team_activities(created_at DESC);
+
+-- Enable RLS on Team Collaboration tables
+ALTER TABLE public.team_discussions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.discussion_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.team_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.team_activities ENABLE ROW LEVEL SECURITY;
+
+-- Team Discussions RLS Policies
+DROP POLICY IF EXISTS "Users can view discussions for their projects" ON team_discussions;
+CREATE POLICY "Users can view discussions for their projects" ON team_discussions
+  FOR SELECT USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can create discussions for their projects" ON team_discussions;
+CREATE POLICY "Users can create discussions for their projects" ON team_discussions
+  FOR INSERT WITH CHECK (
+    created_by = auth.uid() AND
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can delete their own discussions" ON team_discussions;
+CREATE POLICY "Users can delete their own discussions" ON team_discussions
+  FOR DELETE USING (created_by = auth.uid());
+
+-- Discussion Comments RLS Policies
+DROP POLICY IF EXISTS "Users can view comments for their projects" ON discussion_comments;
+CREATE POLICY "Users can view comments for their projects" ON discussion_comments
+  FOR SELECT USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can create comments for their projects" ON discussion_comments;
+CREATE POLICY "Users can create comments for their projects" ON discussion_comments
+  FOR INSERT WITH CHECK (
+    created_by = auth.uid() AND
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can delete their own comments" ON discussion_comments;
+CREATE POLICY "Users can delete their own comments" ON discussion_comments
+  FOR DELETE USING (created_by = auth.uid());
+
+-- Team Tasks RLS Policies
+DROP POLICY IF EXISTS "Users can view team tasks for their projects" ON team_tasks;
+CREATE POLICY "Users can view team tasks for their projects" ON team_tasks
+  FOR SELECT USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can create team tasks for their projects" ON team_tasks;
+CREATE POLICY "Users can create team tasks for their projects" ON team_tasks
+  FOR INSERT WITH CHECK (
+    created_by = auth.uid() AND
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can update team tasks for their projects" ON team_tasks;
+CREATE POLICY "Users can update team tasks for their projects" ON team_tasks
+  FOR UPDATE USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can delete their own team tasks" ON team_tasks;
+CREATE POLICY "Users can delete their own team tasks" ON team_tasks
+  FOR DELETE USING (created_by = auth.uid());
+
+-- Team Activities RLS Policies
+DROP POLICY IF EXISTS "Users can view activities for their projects" ON team_activities;
+CREATE POLICY "Users can view activities for their projects" ON team_activities
+  FOR SELECT USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "System can create activities" ON team_activities;
+CREATE POLICY "System can create activities" ON team_activities
+  FOR INSERT WITH CHECK (
+    user_id = auth.uid() AND
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
 
 -- Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO anon, authenticated;

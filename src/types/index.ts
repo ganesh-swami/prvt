@@ -215,6 +215,39 @@ export interface FinancialModel {
   updated_at: string;
 }
 
+export interface MarketSizing {
+  id: string;
+  name: string;
+  project_id: string;
+  market_data: Record<string, any>;
+  approach: string;
+  value_unit: string;
+  results: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PricingLab {
+  id: string;
+  name: string;
+  project_id: string;
+  pricing_data: Record<string, any>;
+  strategy: string;
+  results: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UnitEconomics {
+  id: string;
+  name: string;
+  project_id: string;
+  metrics: Record<string, any>;
+  results: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Competitor {
   id: string;
   project_id: string;
@@ -359,6 +392,59 @@ export interface Draft {
   updated_at: string;
   version: number;
   parent_draft_id?: string;
+}
+
+// Team Collaboration Types
+export interface TeamDiscussion {
+  id: string;
+  project_id: string;
+  title: string;
+  content: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  creator?: User;
+  comments?: DiscussionComment[];
+}
+
+export interface DiscussionComment {
+  id: string;
+  discussion_id: string;
+  project_id: string;
+  content: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  creator?: User;
+}
+
+export interface TeamTask {
+  id: string;
+  project_id: string;
+  title: string;
+  description?: string;
+  status: 'todo' | 'in_progress' | 'completed';
+  priority: 'low' | 'medium' | 'high';
+  due_date?: string;
+  assigned_to?: string;
+  created_by: string;
+  completed_at?: string;
+  created_at: string;
+  updated_at: string;
+  creator?: User;
+  assignee?: User;
+}
+
+export interface TeamActivity {
+  id: string;
+  project_id: string;
+  activity_type: 'task_created' | 'task_completed' | 'task_updated' | 'discussion_created' | 'comment_created';
+  entity_id: string;
+  entity_type: 'task' | 'discussion' | 'comment';
+  user_id: string;
+  metadata?: Record<string, any>;
+  created_at: string;
+  user?: User;
 }
 
 // Legacy types for backward compatibility

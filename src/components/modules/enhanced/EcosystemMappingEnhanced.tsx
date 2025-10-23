@@ -45,7 +45,7 @@ const EcosystemMappingEnhanced: React.FC = () => {
   const dispatch = useAppDispatch();
 
   // TODO: Replace with actual project selection logic
-  const TEMP_PROJECT_ID = "b1241f28-82bd-439c-99ed-4112673b8a87";
+  const TEMP_PROJECT_ID = "666c94d4-4f2e-4b78-94d3-bfef5754eaeb";
 
   // Redux selectors
   const stakeholders = useAppSelector(selectStakeholders);

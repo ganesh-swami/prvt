@@ -43,7 +43,6 @@ export function TeamCollaborationEnhanced({
   const dispatch = useAppDispatch();
   const [activeTab, setActiveTab] = useState("tasks");
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [collaborators, setCollaborators] = useState<any[]>([]);
   
   // Form states
   const [showTaskForm, setShowTaskForm] = useState(false);
@@ -78,29 +77,12 @@ export function TeamCollaborationEnhanced({
       try {
         const user = await userApi.getCurrentUser();
         setCurrentUser(user);
-        // Set current user as default assignee
-        setNewTask(prev => ({ ...prev, assigned_to: user.id }));
       } catch (error) {
         console.error("Error loading user:", error);
       }
     };
     loadUser();
   }, []);
-  
-  // Load project collaborators
-  useEffect(() => {
-    const loadCollaborators = async () => {
-      try {
-        const members = await userApi.getProjectTeamMembers(projectId);
-        setCollaborators(members);
-      } catch (error) {
-        console.error("Error loading collaborators:", error);
-      }
-    };
-    if (projectId) {
-      loadCollaborators();
-    }
-  }, [projectId]);
   
   useEffect(() => {
     if (projectId) {
@@ -119,16 +101,8 @@ export function TeamCollaborationEnhanced({
   
   // Handlers
   const handleCreateTask = async () => {
-    if (!newTask.title) {
+    if (!newTask.title || !currentUser) {
       toast.error("Please fill in the task title");
-      return;
-    }
-    if (!newTask.assigned_to) {
-      toast.error("Please assign the task to someone");
-      return;
-    }
-    if (!currentUser) {
-      toast.error("User not loaded");
       return;
     }
     
@@ -140,14 +114,7 @@ export function TeamCollaborationEnhanced({
       })).unwrap();
       
       toast.success("Task created successfully!");
-      // Reset form with current user as default assignee
-      setNewTask({ 
-        title: "", 
-        description: "", 
-        priority: "medium", 
-        due_date: "", 
-        assigned_to: currentUser.id 
-      });
+      setNewTask({ title: "", description: "", priority: "medium", due_date: "", assigned_to: "" });
       setShowTaskForm(false);
     } catch (error) {
       toast.error("Failed to create task");
@@ -297,7 +264,6 @@ export function TeamCollaborationEnhanced({
             {showTaskForm && (
               <TaskForm
                 newTask={newTask}
-                collaborators={collaborators}
                 onTaskChange={setNewTask}
                 onSubmit={handleCreateTask}
                 onCancel={() => setShowTaskForm(false)}

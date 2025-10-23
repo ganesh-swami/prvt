@@ -1,12 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
   setPricingData,
   setStrategy,
   setResults,
+  setProjectId,
+  savePricingLab,
+  loadLatestPricingLab,
   selectPricingData,
   selectStrategy,
   selectPricingResults,
+  selectProjectId,
+  selectPricingId,
+  selectLoading,
+  selectSaving,
+  selectError,
+  selectLastSaved,
 } from '@/store/slices/pricingLabSlice';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,11 +30,67 @@ import { CustomTooltip } from '@/components/common/CustomTooltip';
 import PricingAnalysis from './PricingAnalysis';
 import PricingStrategy from './PricingStrategy';
 import { exportModuleData } from '@/utils/moduleExportUtils';
-const PricingLabEnhanced: React.FC = () => {
+import { useToast } from '@/hooks/use-toast';
+interface PricingLabEnhancedProps {
+  projectId: string;
+}
+
+const PricingLabEnhanced: React.FC<PricingLabEnhancedProps> = ({ projectId }) => {
   const dispatch = useAppDispatch();
+  const { toast } = useToast();
   const pricingData = useAppSelector(selectPricingData);
   const strategy = useAppSelector(selectStrategy);
   const results = useAppSelector(selectPricingResults);
+  const storedProjectId = useAppSelector(selectProjectId);
+  const pricingId = useAppSelector(selectPricingId);
+  const loading = useAppSelector(selectLoading);
+  const saving = useAppSelector(selectSaving);
+  const error = useAppSelector(selectError);
+  const lastSaved = useAppSelector(selectLastSaved);
+
+  // Load data on mount
+  useEffect(() => {
+    if (projectId && projectId !== storedProjectId) {
+      dispatch(setProjectId(projectId));
+      dispatch(loadLatestPricingLab(projectId));
+    }
+  }, [projectId, storedProjectId, dispatch]);
+
+  // Show error toast
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error",
+        description: error,
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
+
+  // Auto-save function
+  const handleSave = async () => {
+    if (!projectId) return;
+    
+    try {
+      await dispatch(
+        savePricingLab({
+          projectId,
+          pricingId,
+          name: "Pricing Analysis",
+          pricingData,
+          strategy,
+          results,
+        })
+      ).unwrap();
+      
+      toast({
+        title: "Saved",
+        description: "Pricing lab data saved successfully",
+      });
+    } catch (err) {
+      // Error handled by Redux slice
+    }
+  };
 
   const calculatePricing = () => {
     const cost = parseFloat(pricingData.costBasis) || 0;
@@ -63,6 +128,9 @@ const PricingLabEnhanced: React.FC = () => {
       recommendedPrice,
       demandForecast: Math.max(0, demandForecast)
     }));
+    
+    // Auto-save after calculation
+    setTimeout(() => handleSave(), 500);
   };
 
   const handleExport = (format: string) => {
@@ -73,6 +141,17 @@ const PricingLabEnhanced: React.FC = () => {
       "Pricing Lab Pro Report"    
     );
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading pricing lab data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -85,7 +164,22 @@ const PricingLabEnhanced: React.FC = () => {
             Pricing Lab Pro
           </h1>
         </div>
-        <ExportOptions data={{ pricingData, results }} filename="pricing-analysis" onExport={handleExport} />
+        <div className="flex items-center gap-3">
+          {lastSaved && (
+            <span className="text-sm text-gray-500">
+              Last saved: {new Date(lastSaved).toLocaleTimeString()}
+            </span>
+          )}
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            variant="outline"
+            size="sm"
+          >
+            {saving ? "Saving..." : "Save"}
+          </Button>
+          <ExportOptions data={{ pricingData, results }} filename="pricing-analysis" onExport={handleExport} />
+        </div>
       </div>
 
       <Tabs defaultValue="inputs" className="space-y-6">

@@ -1,15 +1,24 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   setMarketData,
   setApproach,
   setValueUnit,
   setResults,
+  setProjectId,
+  saveMarketSizing,
+  loadLatestMarketSizing,
   selectMarketData,
   selectApproach,
   selectValueUnit,
   selectResults,
   selectShowAnalysis,
+  selectProjectId,
+  selectSizingId,
+  selectLoading,
+  selectSaving,
+  selectError,
+  selectLastSaved,
 } from "@/store/slices/marketSizingSlice";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,14 +46,71 @@ import { CustomTooltip } from "@/components/common/CustomTooltip";
 import { MarketSizingAnalysis } from "@/components/modules/MarketSizingAnalysis";
 import { MarketSizingMethodology } from "@/components/modules/MarketSizingMethodology";
 import { exportModuleData } from "@/utils/moduleExportUtils";
+import { useToast } from "@/hooks/use-toast";
 
-const MarketSizingEnhanced: React.FC = () => {
+interface MarketSizingEnhancedProps {
+  projectId: string;
+}
+
+const MarketSizingEnhanced: React.FC<MarketSizingEnhancedProps> = ({ projectId }) => {
   const dispatch = useAppDispatch();
+  const { toast } = useToast();
   const marketData = useAppSelector(selectMarketData);
   const approach = useAppSelector(selectApproach);
   const valueUnit = useAppSelector(selectValueUnit);
   const results = useAppSelector(selectResults);
   const showAnalysis = useAppSelector(selectShowAnalysis);
+  const storedProjectId = useAppSelector(selectProjectId);
+  const sizingId = useAppSelector(selectSizingId);
+  const loading = useAppSelector(selectLoading);
+  const saving = useAppSelector(selectSaving);
+  const error = useAppSelector(selectError);
+  const lastSaved = useAppSelector(selectLastSaved);
+
+  // Load data on mount
+  useEffect(() => {
+    if (projectId && projectId !== storedProjectId) {
+      dispatch(setProjectId(projectId));
+      dispatch(loadLatestMarketSizing(projectId));
+    }
+  }, [projectId, storedProjectId, dispatch]);
+
+  // Show error toast
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error",
+        description: error,
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
+
+  // Auto-save function
+  const handleSave = async () => {
+    if (!projectId) return;
+    
+    try {
+      await dispatch(
+        saveMarketSizing({
+          projectId,
+          sizingId,
+          name: "Market Sizing Analysis",
+          marketData,
+          approach,
+          valueUnit,
+          results,
+        })
+      ).unwrap();
+      
+      toast({
+        title: "Saved",
+        description: "Market sizing data saved successfully",
+      });
+    } catch (err) {
+      // Error handled by Redux slice
+    }
+  };
 
   const calculateMarketSize = () => {
     const total = parseFloat(marketData.totalMarket) || 0;
@@ -59,6 +125,9 @@ const MarketSizingEnhanced: React.FC = () => {
     const revenueOpportunity = som * avgRev;
 
     dispatch(setResults({ tam, sam, som, revenueOpportunity }));
+    
+    // Auto-save after calculation
+    setTimeout(() => handleSave(), 500);
   };
 
   const formatValue = (value: number) => {
@@ -77,6 +146,17 @@ const MarketSizingEnhanced: React.FC = () => {
     );
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading market sizing data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -93,11 +173,26 @@ const MarketSizingEnhanced: React.FC = () => {
             </p>
           </div>
         </div>
-        <ExportOptions
-          data={{ marketData, results }}
-          filename="market-sizing"
-          onExport={handleExport}
-        />
+        <div className="flex items-center gap-3">
+          {lastSaved && (
+            <span className="text-sm text-gray-500">
+              Last saved: {new Date(lastSaved).toLocaleTimeString()}
+            </span>
+          )}
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            variant="outline"
+            size="sm"
+          >
+            {saving ? "Saving..." : "Save"}
+          </Button>
+          <ExportOptions
+            data={{ marketData, results }}
+            filename="market-sizing"
+            onExport={handleExport}
+          />
+        </div>
       </div>
 
       <Tabs defaultValue="inputs" className="space-y-6">

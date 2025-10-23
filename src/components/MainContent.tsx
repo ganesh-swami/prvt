@@ -27,8 +27,9 @@ import { CreatorPortal } from "./templates/CreatorPortal";
 import AnalyticsDashboard from "./admin/AnalyticsDashboard";
 import OrgAnalyticsDashboard from "./admin/OrgAnalyticsDashboard";
 import { PricingModule } from "./modules/PricingModule";
+import Projects from "./Projects";
 
-const TEMP_PROJECT_ID = "790b4b71-f138-47bc-bec1-8be804d7d8c4";
+const TEMP_PROJECT_ID = "666c94d4-4f2e-4b78-94d3-bfef5754eaeb";
 
 export const MainContent: React.FC = () => {
   const { currentModule } = useAppContext();
@@ -46,11 +47,11 @@ export const MainContent: React.FC = () => {
       case "ecosystem-mapping":
         return <EcosystemMappingEnhanced />;
       case "market-sizing":
-        return <MarketSizingEnhanced />;
+        return <MarketSizingEnhanced projectId={TEMP_PROJECT_ID} />;
       case "pricing":
-        return <PricingLabEnhanced />;
+        return <PricingLabEnhanced projectId={TEMP_PROJECT_ID} />;
       case "unit-economics":
-        return <UnitEconomicsEnhanced />;
+        return <UnitEconomicsEnhanced projectId={TEMP_PROJECT_ID} />;
       case "financial":
         return <FinancialModelerEnhanced projectId={TEMP_PROJECT_ID} />;
       case "competitor-analysis":
@@ -63,6 +64,8 @@ export const MainContent: React.FC = () => {
         return <ESGComplianceTracking />;
       case "drafts-and-plans":
         return <DraftsAndPlans />;
+      case "projects":
+        return <Projects />;
       case "team-collaboration":
         return <TeamCollaboration />;
       case "gtm":

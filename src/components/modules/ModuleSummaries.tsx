@@ -18,6 +18,8 @@ const getModuleIcon = (moduleId: string) => {
       return <DollarSign className="w-5 h-5" />;
     case 'market-sizing':
       return <BarChart3 className="w-5 h-5" />;
+    case 'pricing-lab':
+      return <Target className="w-5 h-5" />;
     case 'competitor-analysis':
       return <TrendingUp className="w-5 h-5" />;
     case 'unit-economics':

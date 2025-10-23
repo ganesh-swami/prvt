@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail, Lock } from "lucide-react";
+import { toast } from "sonner";
 
 export const SignInForm: React.FC = () => {
   const { signIn } = useAuth();
@@ -22,6 +23,7 @@ export const SignInForm: React.FC = () => {
       await signIn(email, password);
     } catch (err: any) {
       setError(err.message || "Failed to sign in");
+      toast.error(err.message || "Failed to sign in");
     } finally {
       setLoading(false);
     }

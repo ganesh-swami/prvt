@@ -1,11 +1,20 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   setMetrics,
   setResults,
+  setProjectId,
+  saveUnitEconomics,
+  loadLatestUnitEconomics,
   selectMetrics,
   selectResults,
   selectShowAnalysis,
+  selectProjectId,
+  selectEconomicsId,
+  selectLoading,
+  selectSaving,
+  selectError,
+  selectLastSaved,
 } from "@/store/slices/unitEconomicsSlice";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,12 +28,67 @@ import UnitEconomicsAnalysis from "./UnitEconomicsAnalysis";
 import UnitEconomicsVisualizations from "./UnitEconomicsVisualizations";
 import FinancialScenarios from "./FinancialScenarios";
 import { exportModuleData } from "@/utils/moduleExportUtils";
+import { useToast } from "@/hooks/use-toast";
 
-const UnitEconomicsEnhanced: React.FC = () => {
+interface UnitEconomicsEnhancedProps {
+  projectId: string;
+}
+
+const UnitEconomicsEnhanced: React.FC<UnitEconomicsEnhancedProps> = ({ projectId }) => {
   const dispatch = useAppDispatch();
+  const { toast } = useToast();
   const metrics = useAppSelector(selectMetrics);
   const results = useAppSelector(selectResults);
   const showAnalysis = useAppSelector(selectShowAnalysis);
+  const storedProjectId = useAppSelector(selectProjectId);
+  const economicsId = useAppSelector(selectEconomicsId);
+  const loading = useAppSelector(selectLoading);
+  const saving = useAppSelector(selectSaving);
+  const error = useAppSelector(selectError);
+  const lastSaved = useAppSelector(selectLastSaved);
+
+  // Load data on mount
+  useEffect(() => {
+    if (projectId && projectId !== storedProjectId) {
+      dispatch(setProjectId(projectId));
+      dispatch(loadLatestUnitEconomics(projectId));
+    }
+  }, [projectId, storedProjectId, dispatch]);
+
+  // Show error toast
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error",
+        description: error,
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
+
+  // Auto-save function
+  const handleSave = async () => {
+    if (!projectId) return;
+    
+    try {
+      await dispatch(
+        saveUnitEconomics({
+          projectId,
+          economicsId,
+          name: "Unit Economics Analysis",
+          metrics,
+          results,
+        })
+      ).unwrap();
+      
+      toast({
+        title: "Saved",
+        description: "Unit economics data saved successfully",
+      });
+    } catch (err) {
+      // Error handled by Redux slice
+    }
+  };
 
   const calculateUnitEconomics = () => {
     const cac = parseFloat(metrics.cac) || 0;
@@ -60,6 +124,9 @@ const UnitEconomicsEnhanced: React.FC = () => {
       grossMarginPerLifespan,
       unitProfitability,
     }));
+    
+    // Auto-save after calculation
+    setTimeout(() => handleSave(), 500);
   };
 
   
@@ -72,6 +139,17 @@ const handleExport = (format: string) => {
   );
 };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading unit economics data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -81,11 +159,26 @@ const handleExport = (format: string) => {
             Advanced Unit Economics
           </h1>
         </div>
-        <ExportOptions
-          data={{ metrics, results }}
-          filename="unit-economics"
-          onExport={handleExport}
-        />
+        <div className="flex items-center gap-3">
+          {lastSaved && (
+            <span className="text-sm text-gray-500">
+              Last saved: {new Date(lastSaved).toLocaleTimeString()}
+            </span>
+          )}
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            variant="outline"
+            size="sm"
+          >
+            {saving ? "Saving..." : "Save"}
+          </Button>
+          <ExportOptions
+            data={{ metrics, results }}
+            filename="unit-economics"
+            onExport={handleExport}
+          />
+        </div>
       </div>
 
       <Tabs defaultValue="metrics" className="space-y-6">
@@ -318,7 +411,7 @@ const handleExport = (format: string) => {
                 Calculate Unit Economics
               </Button>
 
-              {showAnalysis && <UnitEconomicsAnalysis results={results} />}
+              {showAnalysis && (results.ltv > 0 || results.ltvCacRatio > 0) && <UnitEconomicsAnalysis results={results} />}
             </CardContent>
           </Card>
         </TabsContent>

@@ -15,6 +15,9 @@ import {
   MarketAssumptions,
   PricingScenario,
   FinancialModel,
+  MarketSizing,
+  PricingLab,
+  UnitEconomics,
   Competitor,
   Risk,
   Comment,
@@ -26,6 +29,10 @@ import {
   UsageCounter,
   Template,
   Draft,
+  TeamDiscussion,
+  DiscussionComment,
+  TeamTask,
+  TeamActivity,
 } from "@/types";
 
 // User API
@@ -225,6 +232,46 @@ export const projectApi = {
 
     if (error) throw error;
     return data || [];
+  },
+
+  async addCollaborator(
+    projectId: string,
+    userId: string,
+    role: "owner" | "editor" | "viewer" = "owner"
+  ): Promise<ProjectCollaborator> {
+    const { data, error } = await supabase
+      .from("project_collaborators")
+      .insert({
+        project_id: projectId,
+        user_id: userId,
+        role: role,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async removeCollaborator(collaboratorId: string): Promise<void> {
+    const { error } = await supabase
+      .from("project_collaborators")
+      .delete()
+      .eq("id", collaboratorId);
+
+    if (error) throw error;
+  },
+
+  async archiveProject(id: string): Promise<Project> {
+    const { data, error } = await supabase
+      .from("projects")
+      .update({ status: "archived", updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   },
 };
 
@@ -747,6 +794,132 @@ export const financialModelsApi = {
   ): Promise<FinancialModel> {
     const { data, error } = await supabase
       .from("financial_models")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+};
+
+// Market Sizing API
+export const marketSizingApi = {
+  async getByProjectId(projectId: string): Promise<MarketSizing[]> {
+    const { data, error } = await supabase
+      .from("market_sizing")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async create(
+    marketSizing: Omit<MarketSizing, "id" | "created_at" | "updated_at">
+  ): Promise<MarketSizing> {
+    const { data, error } = await supabase
+      .from("market_sizing")
+      .insert(marketSizing)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async update(
+    id: string,
+    updates: Partial<MarketSizing>
+  ): Promise<MarketSizing> {
+    const { data, error } = await supabase
+      .from("market_sizing")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+};
+
+// Pricing Lab API
+export const pricingLabApi = {
+  async getByProjectId(projectId: string): Promise<PricingLab[]> {
+    const { data, error } = await supabase
+      .from("pricing_lab")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false});
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async create(
+    pricingLab: Omit<PricingLab, "id" | "created_at" | "updated_at">
+  ): Promise<PricingLab> {
+    const { data, error } = await supabase
+      .from("pricing_lab")
+      .insert(pricingLab)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async update(
+    id: string,
+    updates: Partial<PricingLab>
+  ): Promise<PricingLab> {
+    const { data, error } = await supabase
+      .from("pricing_lab")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+};
+
+// Unit Economics API
+export const unitEconomicsApi = {
+  async getByProjectId(projectId: string): Promise<UnitEconomics[]> {
+    const { data, error } = await supabase
+      .from("unit_economics")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async create(
+    unitEconomics: Omit<UnitEconomics, "id" | "created_at" | "updated_at">
+  ): Promise<UnitEconomics> {
+    const { data, error } = await supabase
+      .from("unit_economics")
+      .insert(unitEconomics)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async update(
+    id: string,
+    updates: Partial<UnitEconomics>
+  ): Promise<UnitEconomics> {
+    const { data, error } = await supabase
+      .from("unit_economics")
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq("id", id)
       .select()
