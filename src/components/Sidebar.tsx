@@ -1,6 +1,26 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 import { useAppContext } from "@/contexts/AppContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCurrentProject } from "@/hooks/useCurrentProject";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { 
+  selectActiveProjects, 
+  selectProjectsLoading,
+  setCurrentProject,
+  fetchProjects 
+} from "@/store/slices/projectsSlice";
+import { resetModel } from "@/store/slices/financialModelerSlice";
+import { resetMarketSizing } from "@/store/slices/marketSizingSlice";
+import { resetPricingLab } from "@/store/slices/pricingLabSlice";
+import { resetUnitEconomics } from "@/store/slices/unitEconomicsSlice";
+import { resetProblemTree } from "@/store/slices/problemTreeSlice";
+import { resetSocialCanvas } from "@/store/slices/socialCanvasSlice";
+import { resetEcosystemMap } from "@/store/slices/stakeholdersSlice";
+import { resetPlanBuilder } from "@/store/slices/planBuilderSlice";
+import { reset as resetTeamCollaboration } from "@/store/slices/teamCollaborationSlice";
+import { resetGTMPlanner } from "@/store/slices/gtmPlannerSlice";
+import { toast } from "sonner";
 import {
   BarChart3,
   Calculator,
@@ -23,9 +43,17 @@ import {
   CreditCard,
   ChevronDown,
   ChevronRight,
+  FolderOpen,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type MenuItem = {
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
@@ -175,6 +203,124 @@ const categoryLabels = {
   admin: "Administration",
 };
 
+// Project Selector Component
+const ProjectSelector: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const { user } = useAuth();
+  const { currentProject, currentProjectId } = useCurrentProject();
+  const activeProjects = useAppSelector(selectActiveProjects);
+  const loading = useAppSelector(selectProjectsLoading);
+  const [hasFetched, setHasFetched] = React.useState(false);
+
+  // Fetch projects on mount if not already loaded
+  React.useEffect(() => {
+    if (user?.id && !hasFetched && activeProjects.length === 0 && !loading) {
+      dispatch(fetchProjects(user.id));
+      setHasFetched(true);
+    }
+  }, [dispatch, user?.id, activeProjects.length, loading, hasFetched]);
+
+  const handleProjectChange = (projectId: string) => {
+    // Don't proceed if same project is selected
+    if (projectId === currentProjectId) return;
+
+    const selectedProject = activeProjects.find(p => p.id === projectId);
+    if (!selectedProject) return;
+
+    // Clear all module data from Redux stores
+    dispatch(resetModel());
+    dispatch(resetMarketSizing());
+    dispatch(resetPricingLab());
+    dispatch(resetUnitEconomics());
+    dispatch(resetProblemTree());
+    dispatch(resetSocialCanvas());
+    dispatch(resetEcosystemMap());
+    dispatch(resetPlanBuilder());
+    dispatch(resetTeamCollaboration());
+    dispatch(resetGTMPlanner());
+    
+    // Note: Competitor and Risk slices fetch data on mount, so they'll load fresh data automatically
+
+    // Set new project
+    dispatch(setCurrentProject(selectedProject));
+
+    // Show success message
+    toast.success(`Switched to "${selectedProject.name}"`, {
+      description: "All module data has been cleared and will reload for this project.",
+    });
+
+    // Optional: Reload the page to ensure clean state
+    // Uncomment if you want a hard refresh on project switch
+    // setTimeout(() => window.location.reload(), 500);
+  };
+
+  // Show loading state while fetching projects
+  if (loading && activeProjects.length === 0) {
+    return (
+      <div className="px-2">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800">
+          <div className="flex items-center gap-2">
+            <div className="animate-spin rounded-full h-3 w-3 border-2 border-blue-600 border-t-transparent"></div>
+            <p>Loading projects...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show "No Projects" message only after loading is complete
+  if (!loading && activeProjects.length === 0) {
+    return (
+      <div className="px-2">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800">
+          <p className="font-medium mb-1">No Projects</p>
+          <p>Create a project to get started</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-2">
+      <label className="text-xs font-medium text-gray-600 mb-1.5 flex items-center gap-1.5">
+        <FolderOpen className="w-3.5 h-3.5" />
+        Current Project
+      </label>
+      <Select 
+        value={currentProjectId || ""} 
+        onValueChange={handleProjectChange}
+      >
+        <SelectTrigger className="w-full h-9 text-sm bg-white border-gray-200 hover:border-blue-300 focus:border-blue-500 transition-colors">
+          <SelectValue placeholder="Select a project">
+            {currentProject?.name || "Select project"}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {activeProjects.map((project) => (
+            <SelectItem 
+              key={project.id} 
+              value={project.id}
+              className="text-sm"
+            >
+              <div className="flex items-center justify-between w-full">
+                <span>{project.name}</span>
+                {project.id === currentProjectId && (
+                  <Badge className="ml-2 bg-blue-600 text-white text-xs">Active</Badge>
+                )}
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {currentProject && (
+        <p className="text-xs text-gray-500 mt-1.5 truncate">
+          {currentProject.description || "No description"}
+        </p>
+      )}
+    </div>
+  );
+};
+
 export const Sidebar: React.FC = () => {
   const { sidebarOpen, currentModule, setCurrentModule } = useAppContext();
   const [collapsedCategories, setCollapsedCategories] = React.useState<
@@ -210,7 +356,7 @@ export const Sidebar: React.FC = () => {
         sidebarOpen ? "w-72" : "w-16"
       } border-r`}
     >
-      <div className="p-4 border-b border-gray-100">
+      <div className="p-4 border-b border-gray-100 space-y-3">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
             <BarChart3 className="w-6 h-6 text-white" />
@@ -226,9 +372,11 @@ export const Sidebar: React.FC = () => {
             </div>
           )}
         </div>
+        
+        {sidebarOpen && <ProjectSelector />}
       </div>
 
-      <nav className="mt-4 pb-4 overflow-y-auto overflow-x-hidden max-h-[calc(100vh-120px)]">
+      <nav className="mt-4 pb-4 overflow-y-auto overflow-x-hidden max-h-[calc(100vh-200px)]">
         {Object.entries(groupedItems).map(([category, items]) => (
           <div key={category} className="mb-4">
             {sidebarOpen && (
