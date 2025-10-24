@@ -12,6 +12,8 @@ import {
   selectProjectsSaving,
   selectProjectsError,
   selectCurrentUser,
+  selectCurrentProject,
+  setCurrentProject,
   clearError,
 } from "@/store/slices/projectsSlice";
 import type { Project } from "@/types";
@@ -57,6 +59,7 @@ const Projects: React.FC = () => {
   const saving = useAppSelector(selectProjectsSaving);
   const error = useAppSelector(selectProjectsError);
   const currentUser = useAppSelector(selectCurrentUser);
+  const currentProject = useAppSelector(selectCurrentProject);
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -184,14 +187,30 @@ const Projects: React.FC = () => {
     });
   };
 
-  const ProjectCard = ({ project, isArchived = false }: { project: Project; isArchived?: boolean }) => (
-    <Card className="hover:shadow-md transition-shadow">
+  const handleSelectProject = (project: Project) => {
+    dispatch(setCurrentProject(project));
+    toast.success(`"${project.name}" is now your active project`);
+  };
+
+  const ProjectCard = ({ project, isArchived = false }: { project: Project; isArchived?: boolean }) => {
+    const isSelected = currentProject?.id === project.id;
+    
+    return (
+    <Card 
+      className={`hover:shadow-md transition-all cursor-pointer ${
+        isSelected ? 'ring-2 ring-blue-500 shadow-md' : ''
+      }`}
+      onClick={() => !isArchived && handleSelectProject(project)}
+    >
       <CardContent className="pt-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <FolderOpen className="h-5 w-5 text-blue-600" />
+              <FolderOpen className={`h-5 w-5 ${isSelected ? 'text-blue-600' : 'text-gray-600'}`} />
               <h3 className="text-lg font-semibold">{project.name}</h3>
+              {isSelected && (
+                <Badge className="bg-blue-600 text-white">Active</Badge>
+              )}
               <Badge
                 variant="secondary"
                 className={
@@ -227,14 +246,20 @@ const Projects: React.FC = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => openEditDialog(project)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openEditDialog(project);
+                  }}
                 >
                   <Edit className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleArchiveProject(project.id, project.name)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleArchiveProject(project.id, project.name);
+                  }}
                   disabled={saving}
                 >
                   <Archive className="h-4 w-4" />
@@ -245,7 +270,8 @@ const Projects: React.FC = () => {
         </div>
       </CardContent>
     </Card>
-  );
+  )
+  };
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8">

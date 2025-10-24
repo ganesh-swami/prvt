@@ -1,11 +1,22 @@
 import React from "react";
 import { TeamCollaborationLayout } from "./TeamCollaborationLayout";
 
-// Temporary project ID - replace with actual project context
-const TEMP_PROJECT_ID = "666c94d4-4f2e-4b78-94d3-bfef5754eaeb";
+interface TeamCollaborationProps {
+  projectId?: string | null;
+}
 
-export const TeamCollaboration: React.FC = () => {
-  return <TeamCollaborationLayout projectId={TEMP_PROJECT_ID} />;
+export const TeamCollaboration: React.FC<TeamCollaborationProps> = ({ projectId }) => {
+  if (!projectId) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center p-8">
+          <p className="text-muted-foreground">No project selected</p>
+        </div>
+      </div>
+    );
+  }
+  
+  return <TeamCollaborationLayout projectId={projectId} />;
 };
 
 export default TeamCollaboration;

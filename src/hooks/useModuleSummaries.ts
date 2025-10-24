@@ -38,7 +38,7 @@ export interface ModuleSummary {
 }
 
 export const useModuleSummaries = (
-  projectId: string = "666c94d4-4f2e-4b78-94d3-bfef5754eaeb"
+  projectId?: string | null
 ) => {
   const dispatch = useAppDispatch();
 

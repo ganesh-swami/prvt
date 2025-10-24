@@ -259,7 +259,11 @@ const FIELD_GROUPS = [
   },
 ];
 
-const SocialBusinessCanvasImproved: React.FC = () => {
+interface SocialBusinessCanvasProps {
+  projectId?: string | null;
+}
+
+const SocialBusinessCanvasImproved: React.FC<SocialBusinessCanvasProps> = ({ projectId }) => {
   const dispatch = useAppDispatch();
 
   // Redux selectors
@@ -273,16 +277,13 @@ const SocialBusinessCanvasImproved: React.FC = () => {
   // Local state for accordion (all open by default)
   const [openSections, setOpenSections] = useState<string[]>(["core"]);
 
-  // TODO: Replace with actual project selection logic
-  const TEMP_PROJECT_ID = "666c94d4-4f2e-4b78-94d3-bfef5754eaeb";
-
   // Initialize and fetch data
   useEffect(() => {
-    if (TEMP_PROJECT_ID) {
-      dispatch(setProjectId(TEMP_PROJECT_ID));
-      dispatch(fetchSocialCanvas({ projectId: TEMP_PROJECT_ID }));
+    if (projectId) {
+      dispatch(setProjectId(projectId));
+      dispatch(fetchSocialCanvas({ projectId }));
     }
-  }, [dispatch]);
+  }, [dispatch, projectId]);
 
   // Show error toast
   useEffect(() => {

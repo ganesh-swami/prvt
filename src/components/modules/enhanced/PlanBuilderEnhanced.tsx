@@ -36,7 +36,11 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 
-const PlanBuilderEnhanced: React.FC = () => {
+interface PlanBuilderEnhancedProps {
+  projectId?: string | null;
+}
+
+const PlanBuilderEnhanced: React.FC<PlanBuilderEnhancedProps> = ({ projectId: propProjectId }) => {
   const dispatch = useAppDispatch();
   const { currentOrganization } = useAuth();
 
@@ -52,10 +56,6 @@ const PlanBuilderEnhanced: React.FC = () => {
   const { activeSection, planData, sections, businessPlanId, projectId } =
     planBuilder;
 
-  // TODO: Replace with actual project selection logic
-  // For now, using a hardcoded project ID
-  const TEMP_PROJECT_ID = "666c94d4-4f2e-4b78-94d3-bfef5754eaeb";
-
   // Initialize sections on mount
   useEffect(() => {
     dispatch(setSections(allPlanSections));
@@ -63,11 +63,11 @@ const PlanBuilderEnhanced: React.FC = () => {
 
   // Fetch plan builder data when project ID is set
   useEffect(() => {
-    if (TEMP_PROJECT_ID && !projectId) {
-      dispatch(setProjectId(TEMP_PROJECT_ID));
-      dispatch(fetchPlanBuilder({ projectId: TEMP_PROJECT_ID }));
+    if (propProjectId && !projectId) {
+      dispatch(setProjectId(propProjectId));
+      dispatch(fetchPlanBuilder({ projectId: propProjectId }));
     }
-  }, [dispatch, projectId]);
+  }, [dispatch, propProjectId, projectId]);
 
   // Show error toast
   useEffect(() => {

@@ -59,12 +59,13 @@ interface CapTableEntry {
   type: "common" | "preferred" | "options";
 }
 
-// Temporary project ID - replace with actual project context
-const TEMP_PROJECT_ID = "666c94d4-4f2e-4b78-94d3-bfef5754eaeb";
+interface InvestorRoomProps {
+  projectId?: string | null;
+}
 
-export const InvestorRoom: React.FC = () => {
+export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
   const dispatch = useAppDispatch();
-  const { summaries } = useModuleSummaries(TEMP_PROJECT_ID);
+  const { summaries } = useModuleSummaries(projectId || undefined);
 
   // Get real data from Redux
   const financialResults = useAppSelector(selectFinancialResults);
@@ -74,13 +75,15 @@ export const InvestorRoom: React.FC = () => {
 
   // Fetch data if not already loaded (backup in case hook doesn't load)
   useEffect(() => {
-    if (!financialProjectId) {
-      dispatch(loadLatestModel(TEMP_PROJECT_ID));
+    if (projectId) {
+      if (!financialProjectId) {
+        dispatch(loadLatestModel(projectId));
+      }
+      if (!unitEconomicsProjectId) {
+        dispatch(loadLatestUnitEconomics(projectId));
+      }
     }
-    if (!unitEconomicsProjectId) {
-      dispatch(loadLatestUnitEconomics(TEMP_PROJECT_ID));
-    }
-  }, [financialProjectId, unitEconomicsProjectId, dispatch]);
+  }, [projectId, financialProjectId, unitEconomicsProjectId, dispatch]);
 
   // Calculate key metrics from real data
   const monthlyRevenue = financialResults.totalRevenue

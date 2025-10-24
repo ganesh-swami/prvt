@@ -106,6 +106,12 @@ const projectsSlice = createSlice({
   reducers: {
     setCurrentProject: (state, action: PayloadAction<Project | null>) => {
       state.currentProject = action.payload;
+      // Persist to localStorage
+      if (action.payload) {
+        localStorage.setItem("selectedProjectId", action.payload.id);
+      } else {
+        localStorage.removeItem("selectedProjectId");
+      }
     },
     clearError: (state) => {
       state.error = null;
@@ -132,6 +138,23 @@ const projectsSlice = createSlice({
       .addCase(fetchProjects.fulfilled, (state, action) => {
         state.loading = false;
         state.projects = action.payload;
+        
+        // Auto-select project: check localStorage first, then use first project
+        if (action.payload.length > 0) {
+          const savedProjectId = localStorage.getItem("selectedProjectId");
+          const savedProject = savedProjectId 
+            ? action.payload.find(p => p.id === savedProjectId && p.status === "active")
+            : null;
+          
+          // If saved project exists and is active, use it; otherwise use first active project
+          const activeProjects = action.payload.filter(p => p.status === "active");
+          state.currentProject = savedProject || activeProjects[0] || action.payload[0];
+          
+          // Save to localStorage
+          if (state.currentProject) {
+            localStorage.setItem("selectedProjectId", state.currentProject.id);
+          }
+        }
       })
       .addCase(fetchProjects.rejected, (state, action) => {
         state.loading = false;

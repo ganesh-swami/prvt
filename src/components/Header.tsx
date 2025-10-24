@@ -1,8 +1,10 @@
 import React from "react";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCurrentProject } from "@/hooks/useCurrentProject";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,11 +12,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EnhancedNotifications } from "@/components/collaboration/EnhancedNotifications";
-import { Menu, User, LogOut, Settings } from "lucide-react";
+import { Menu, User, LogOut, Settings, FolderOpen } from "lucide-react";
 
 export const Header: React.FC = () => {
   const { toggleSidebar } = useAppContext();
   const { user, signOut } = useAuth();
+  const { currentProject } = useCurrentProject();
 
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
@@ -37,6 +40,20 @@ export const Header: React.FC = () => {
         </div>
 
         <div className="flex items-center space-x-4">
+          {/* {currentProject && (
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg border border-blue-200">
+              <FolderOpen className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-900">
+                {currentProject.name}
+              </span>
+              <Badge
+                variant="secondary"
+                className="text-xs bg-blue-100 text-blue-800"
+              >
+                Active
+              </Badge>
+            </div>
+          )} */}
           <EnhancedNotifications />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

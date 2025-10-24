@@ -154,14 +154,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      await database.signIn(email, password);
-      // loading will normally be cleared by onAuthStateChange → fetchAppUser.finally
+      const result = await database.signIn(email, password);
+      
+      if (result?.session?.user) {
+        // Manually set user and fetch data immediately
+        setUser(result.session.user);
+        await fetchAppUser(result.session.user.id);
+      }
     } catch (error) {
       console.error("Failed to login:", error);
-      throw error;
-    } finally {
-      // Safety: ensure UI doesn't deadlock if auth event doesn't arrive
       setLoading(false);
+      throw error;
     }
   };
 
@@ -177,6 +180,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           `${name}'s Organization`
         );
 
+        // Manually set user and fetch data immediately
+        setUser(result.user);
+        await fetchAppUser(result.user.id);
+
         // Track signup event (non-blocking)
         (async () => {
           try {
@@ -191,10 +198,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         })();
       }
     } catch (error) {
-      throw error;
-    } finally {
-      // Safety: ensure UI doesn't deadlock if auth event doesn't arrive
       setLoading(false);
+      throw error;
     }
   };
 

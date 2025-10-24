@@ -41,11 +41,12 @@ import {
 
 // Using StakeholderData from Redux slice
 
-const EcosystemMappingEnhanced: React.FC = () => {
-  const dispatch = useAppDispatch();
+interface EcosystemMappingEnhancedProps {
+  projectId?: string | null;
+}
 
-  // TODO: Replace with actual project selection logic
-  const TEMP_PROJECT_ID = "666c94d4-4f2e-4b78-94d3-bfef5754eaeb";
+const EcosystemMappingEnhanced: React.FC<EcosystemMappingEnhancedProps> = ({ projectId }) => {
+  const dispatch = useAppDispatch();
 
   // Redux selectors
   const stakeholders = useAppSelector(selectStakeholders);
@@ -57,9 +58,11 @@ const EcosystemMappingEnhanced: React.FC = () => {
 
   // Fetch stakeholders on mount
   useEffect(() => {
-    dispatch(setProjectId(TEMP_PROJECT_ID));
-    dispatch(fetchStakeholders({ projectId: TEMP_PROJECT_ID }));
-  }, [dispatch, TEMP_PROJECT_ID]);
+    if (projectId) {
+      dispatch(setProjectId(projectId));
+      dispatch(fetchStakeholders({ projectId }));
+    }
+  }, [dispatch, projectId]);
 
   const addStakeholder = async (
     stakeholderData: Omit<StakeholderData, "id">
@@ -421,15 +424,15 @@ const EcosystemMappingEnhanced: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="timeline" className="space-y-6">
-          <RelationshipTimeline projectId={TEMP_PROJECT_ID} />
+          <RelationshipTimeline projectId={projectId || ""} />
         </TabsContent>
 
         <TabsContent value="collaboration" className="space-y-6">
-          <CollaborationTools projectId={TEMP_PROJECT_ID} />
+          <CollaborationTools projectId={projectId || ""} />
         </TabsContent>
 
         <TabsContent value="reminders" className="space-y-6">
-          <EngagementReminders projectId={TEMP_PROJECT_ID} />
+          <EngagementReminders projectId={projectId || ""} />
         </TabsContent>
 
         <TabsContent value="export" className="space-y-6">

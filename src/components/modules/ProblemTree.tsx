@@ -39,7 +39,12 @@ import {
   type ProblemTreeData,
 } from "@/store/slices/problemTreeSlice";
 import { toast } from "sonner";
-const ProblemTree: React.FC = () => {
+
+interface ProblemTreeProps {
+  projectId?: string | null;
+}
+
+const ProblemTree: React.FC<ProblemTreeProps> = ({ projectId }) => {
   const dispatch = useAppDispatch();
 
   // Redux selectors
@@ -55,16 +60,13 @@ const ProblemTree: React.FC = () => {
   const [coreProblem, setCoreProblem] = useState<string>("");
   const [causes, setCauses] = useState<string[]>([]);
 
-  // TODO: Replace with actual project selection logic
-  const TEMP_PROJECT_ID = "666c94d4-4f2e-4b78-94d3-bfef5754eaeb";
-
   // Initialize and fetch data
   useEffect(() => {
-    if (TEMP_PROJECT_ID) {
-      dispatch(setProjectId(TEMP_PROJECT_ID));
-      dispatch(fetchProblemTree({ projectId: TEMP_PROJECT_ID }));
+    if (projectId) {
+      dispatch(setProjectId(projectId));
+      dispatch(fetchProblemTree({ projectId }));
     }
-  }, [dispatch]);
+  }, [dispatch, projectId]);
 
   // Show error toast
   useEffect(() => {

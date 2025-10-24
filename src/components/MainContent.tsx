@@ -1,5 +1,6 @@
 import React from "react";
 import { useAppContext } from "@/contexts/AppContext";
+import { useCurrentProject } from "@/hooks/useCurrentProject";
 import { Dashboard } from "./modules/Dashboard";
 import { PlanBuilder } from "./modules/PlanBuilder";
 // import { MarketSizing } from "./modules/MarketSizing";
@@ -29,37 +30,50 @@ import OrgAnalyticsDashboard from "./admin/OrgAnalyticsDashboard";
 import { PricingModule } from "./modules/PricingModule";
 import Projects from "./Projects";
 
-const TEMP_PROJECT_ID = "666c94d4-4f2e-4b78-94d3-bfef5754eaeb";
-
 export const MainContent: React.FC = () => {
   const { currentModule } = useAppContext();
+  const { currentProjectId } = useCurrentProject();
 
   const renderModule = () => {
+    // If no project is selected, show project selection message for modules that need it
+    if (!currentProjectId && ["market-sizing", "pricing", "unit-economics", "financial", "competitor-analysis", "risk-center", "gtm", "team-collaboration"].includes(currentModule)) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center p-8 max-w-md">
+            <h2 className="text-2xl font-bold mb-4">No Project Selected</h2>
+            <p className="text-muted-foreground mb-6">
+              Please create or select a project from the Projects page to use this module.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     switch (currentModule) {
       case "dashboard":
         return <Dashboard />;
       case "plan-builder":
-        return <PlanBuilderEnhanced />;
+        return <PlanBuilderEnhanced projectId={currentProjectId} />;
       case "social-canvas":
-        return <SocialBusinessCanvas />;
+        return <SocialBusinessCanvas projectId={currentProjectId} />;
       case "problem-tree":
-        return <ProblemTree />;
+        return <ProblemTree projectId={currentProjectId} />;
       case "ecosystem-mapping":
-        return <EcosystemMappingEnhanced />;
+        return <EcosystemMappingEnhanced projectId={currentProjectId} />;
       case "market-sizing":
-        return <MarketSizingEnhanced projectId={TEMP_PROJECT_ID} />;
+        return <MarketSizingEnhanced projectId={currentProjectId!} />;
       case "pricing":
-        return <PricingLabEnhanced projectId={TEMP_PROJECT_ID} />;
+        return <PricingLabEnhanced projectId={currentProjectId!} />;
       case "unit-economics":
-        return <UnitEconomicsEnhanced projectId={TEMP_PROJECT_ID} />;
+        return <UnitEconomicsEnhanced projectId={currentProjectId!} />;
       case "financial":
-        return <FinancialModelerEnhanced projectId={TEMP_PROJECT_ID} />;
+        return <FinancialModelerEnhanced projectId={currentProjectId!} />;
       case "competitor-analysis":
-        return <CompetitorAnalysis projectId={TEMP_PROJECT_ID} />;
+        return <CompetitorAnalysis projectId={currentProjectId!} />;
       case "investor-room":
-        return <InvestorRoom />;
+        return <InvestorRoom projectId={currentProjectId} />;
       case "risk-center":
-        return <RiskCenter projectId={TEMP_PROJECT_ID} />;
+        return <RiskCenter projectId={currentProjectId!} />;
       case "esg-compliance":
         return <ESGComplianceTracking />;
       case "drafts-and-plans":
@@ -67,9 +81,9 @@ export const MainContent: React.FC = () => {
       case "projects":
         return <Projects />;
       case "team-collaboration":
-        return <TeamCollaboration />;
+        return <TeamCollaboration projectId={currentProjectId!} />;
       case "gtm":
-        return <GTMPlanner projectId={TEMP_PROJECT_ID} />;
+        return <GTMPlanner projectId={currentProjectId!} />;
       case "templates":
         return <TemplateMarketplace />;
       case "creator-portal":
