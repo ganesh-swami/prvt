@@ -16,7 +16,7 @@ const ProblemTreeVisualizations: React.FC<ProblemTreeVisualizationsProps> = ({
   causes = ["Cause 1", "Cause 2", "Cause 3"],
 }) => {
   return (
-    <div className="space-y-6">
+    <div id="problem-tree-visualization-export" className="space-y-6">
       {/* Visual Tree Diagram */}
       <Card>
         <CardHeader>

@@ -107,20 +107,20 @@ const SocialBusinessCanvas: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg flex items-center justify-center">
-            <Users className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Social Business Model Canvas
-            </h1>
-            <p className="text-gray-600">
-              Design and visualize your social impact business model •{" "}
-              <span className="font-semibold text-green-600">
-                {completionPercentage}% Complete
-              </span>
-            </p>
+        <div>
+          <div className="flex items-center space-x-3">
+            <Heart className="h-8 w-8 text-pink-600" />
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Social Business Model Canvas
+              </h1>
+              <p className="text-gray-600">
+                Design and visualize your social impact business model •{" "}
+                <span className="font-semibold text-green-600">
+                  {completionPercentage}% Complete
+                </span>
+              </p>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-4">

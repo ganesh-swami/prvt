@@ -4,11 +4,11 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCurrentProject } from "@/hooks/useCurrentProject";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { 
-  selectActiveProjects, 
+import {
+  selectActiveProjects,
   selectProjectsLoading,
   setCurrentProject,
-  fetchProjects 
+  fetchProjects,
 } from "@/store/slices/projectsSlice";
 import { resetModel } from "@/store/slices/financialModelerSlice";
 import { resetMarketSizing } from "@/store/slices/marketSizingSlice";
@@ -146,12 +146,12 @@ const menuItems: MenuItem[] = [
     id: "risk-center",
     category: "compliance",
   },
-  {
-    icon: Shield,
-    label: "ESG Compliance",
-    id: "esg-compliance",
-    category: "compliance",
-  },
+  // {
+  //   icon: Shield,
+  //   label: "ESG Compliance",
+  //   id: "esg-compliance",
+  //   category: "compliance",
+  // },
   {
     icon: MessageSquare,
     label: "Team Collaboration",
@@ -224,7 +224,7 @@ const ProjectSelector: React.FC = () => {
     // Don't proceed if same project is selected
     if (projectId === currentProjectId) return;
 
-    const selectedProject = activeProjects.find(p => p.id === projectId);
+    const selectedProject = activeProjects.find((p) => p.id === projectId);
     if (!selectedProject) return;
 
     // Clear all module data from Redux stores
@@ -238,7 +238,7 @@ const ProjectSelector: React.FC = () => {
     dispatch(resetPlanBuilder());
     dispatch(resetTeamCollaboration());
     dispatch(resetGTMPlanner());
-    
+
     // Note: Competitor and Risk slices fetch data on mount, so they'll load fresh data automatically
 
     // Set new project
@@ -246,7 +246,8 @@ const ProjectSelector: React.FC = () => {
 
     // Show success message
     toast.success(`Switched to "${selectedProject.name}"`, {
-      description: "All module data has been cleared and will reload for this project.",
+      description:
+        "All module data has been cleared and will reload for this project.",
     });
 
     // Optional: Reload the page to ensure clean state
@@ -286,8 +287,8 @@ const ProjectSelector: React.FC = () => {
         <FolderOpen className="w-3.5 h-3.5" />
         Current Project
       </label>
-      <Select 
-        value={currentProjectId || ""} 
+      <Select
+        value={currentProjectId || ""}
         onValueChange={handleProjectChange}
       >
         <SelectTrigger className="w-full h-9 text-sm bg-white border-gray-200 hover:border-blue-300 focus:border-blue-500 transition-colors">
@@ -297,15 +298,13 @@ const ProjectSelector: React.FC = () => {
         </SelectTrigger>
         <SelectContent>
           {activeProjects.map((project) => (
-            <SelectItem 
-              key={project.id} 
-              value={project.id}
-              className="text-sm"
-            >
+            <SelectItem key={project.id} value={project.id} className="text-sm">
               <div className="flex items-center justify-between w-full">
                 <span>{project.name}</span>
                 {project.id === currentProjectId && (
-                  <Badge className="ml-2 bg-blue-600 text-white text-xs">Active</Badge>
+                  <Badge className="ml-2 bg-blue-600 text-white text-xs">
+                    Active
+                  </Badge>
                 )}
               </div>
             </SelectItem>
@@ -372,7 +371,7 @@ export const Sidebar: React.FC = () => {
             </div>
           )}
         </div>
-        
+
         {sidebarOpen && <ProjectSelector />}
       </div>
 

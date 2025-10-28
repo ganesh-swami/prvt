@@ -12,7 +12,7 @@ import FinancialModeler from "./modules/FinancialModeler";
 import { default as FinancialModelerEnhanced } from "./modules/enhanced/FinancialModelerEnhanced";
 import PlanBuilderEnhanced from "./modules/enhanced/PlanBuilderEnhanced";
 import UnitEconomicsEnhanced from "./modules/enhanced/UnitEconomicsEnhanced";
-import SocialBusinessCanvas from "./modules/SocialBusinessCanvasImproved";
+import SocialBusinessCanvasImproved from "./modules/SocialBusinessCanvasImproved";
 import ProblemTree from "./modules/ProblemTree";
 import EcosystemMapping from "./modules/EcosystemMapping";
 import EcosystemMappingEnhanced from "./modules/enhanced/EcosystemMappingEnhanced";
@@ -55,7 +55,7 @@ export const MainContent: React.FC = () => {
       case "plan-builder":
         return <PlanBuilderEnhanced projectId={currentProjectId} />;
       case "social-canvas":
-        return <SocialBusinessCanvas projectId={currentProjectId} />;
+        return <SocialBusinessCanvasImproved projectId={currentProjectId} />;
       case "problem-tree":
         return <ProblemTree projectId={currentProjectId} />;
       case "ecosystem-mapping":

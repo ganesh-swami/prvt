@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { CustomTooltip } from "@/components/common/CustomTooltip";
-import { ExportOptions } from "@/components/common/ExportOptions";
+import { VisualCanvasExportImproved } from "./VisualCanvasExportImproved";
 import SocialCanvasVisualization from "./SocialCanvasVisualization";
 import SocialCanvasSummary from "./SocialCanvasSummary";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -203,13 +203,14 @@ const FIELD_GROUPS = [
     ],
   },
   {
-    id: "financial",
-    title: "Financial & Environment",
-    icon: DollarSign,
-    color: "text-green-800",
-    bgColor: "bg-green-50/50",
-    borderColor: "border-green-200",
-    description: "Define your financial model and environmental factors",
+    id: "pestel",
+    title: "Macro-Environmental Analysis",
+    icon: Globe,
+    color: "text-purple-800",
+    bgColor: "bg-purple-50/50",
+    borderColor: "border-purple-200",
+    description:
+      "Analyze external factors that may impact your social business",
     fields: [
       {
         id: "pestelAnalysis",
@@ -222,6 +223,17 @@ const FIELD_GROUPS = [
           "Analyze Political, Economic, Social, Technological, Environmental, and Legal factors that may impact your social business. Consider external factors that could affect your operations and impact.",
         rows: 5,
       },
+    ],
+  },
+  {
+    id: "financial",
+    title: "Financial Model",
+    icon: DollarSign,
+    color: "text-green-800",
+    bgColor: "bg-green-50/50",
+    borderColor: "border-green-200",
+    description: "Define your financial model and revenue streams",
+    fields: [
       {
         id: "costs",
         label: "Costs",
@@ -263,7 +275,9 @@ interface SocialBusinessCanvasProps {
   projectId?: string | null;
 }
 
-const SocialBusinessCanvasImproved: React.FC<SocialBusinessCanvasProps> = ({ projectId }) => {
+const SocialBusinessCanvasImproved: React.FC<SocialBusinessCanvasProps> = ({
+  projectId,
+}) => {
   const dispatch = useAppDispatch();
 
   // Redux selectors
@@ -382,16 +396,15 @@ const SocialBusinessCanvasImproved: React.FC<SocialBusinessCanvasProps> = ({ pro
               </>
             )}
           </Button>
-          <ExportOptions
-            data={canvasData}
-            filename="social-business-canvas"
-            moduleName="Social Business Canvas"
+          <VisualCanvasExportImproved
+            projectName={projectId || "My Project"}
+            canvasData={canvasData}
           />
         </div>
       </div>
 
       {/* Main Tabs */}
-      <Tabs defaultValue="builder" className="w-full">
+      <Tabs defaultValue="builder" className="w-full" id="social-canvas-container">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="builder" className="flex items-center gap-2">
             <Lightbulb className="h-4 w-4" />
@@ -408,7 +421,7 @@ const SocialBusinessCanvasImproved: React.FC<SocialBusinessCanvasProps> = ({ pro
         </TabsList>
 
         {/* Tab 1: Canvas Builder with Grouped Sections */}
-        <TabsContent value="builder" className="mt-6">
+        <TabsContent value="builder" className="mt-6" id="social-canvas-builder">
           <div className="space-y-4">
             <Accordion
               type="multiple"
@@ -507,7 +520,7 @@ const SocialBusinessCanvasImproved: React.FC<SocialBusinessCanvasProps> = ({ pro
         </TabsContent>
 
         {/* Tab 2: Visual Canvas */}
-        <TabsContent value="visual" className="mt-6">
+        <TabsContent value="visual" className="mt-6" id="visual-canvas-export">
           <Card>
             <CardContent className="pt-6">
               <SocialCanvasVisualization canvasData={canvasData} />

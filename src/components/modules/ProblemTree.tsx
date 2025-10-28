@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { CustomTooltip } from "@/components/common/CustomTooltip";
-import { ExportOptions } from "@/components/common/ExportOptions";
+import { ProblemTreeExport } from "./ProblemTreeExport";
 import {
   TreePine,
   ArrowUp,
@@ -176,10 +176,9 @@ const ProblemTree: React.FC<ProblemTreeProps> = ({ projectId }) => {
               </>
             )}
           </Button>
-          <ExportOptions
-            data={treeData}
-            filename="problem-tree-analysis"
-            moduleName="Problem Tree Analysis"
+          <ProblemTreeExport
+            projectName={projectId || "My Project"}
+            treeData={treeData}
           />
         </div>
       </div>
