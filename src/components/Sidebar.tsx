@@ -283,10 +283,6 @@ const ProjectSelector: React.FC = () => {
 
   return (
     <div className="px-2">
-      <label className="text-xs font-medium text-gray-600 mb-1.5 flex items-center gap-1.5">
-        <FolderOpen className="w-3.5 h-3.5" />
-        Current Project
-      </label>
       <Select
         value={currentProjectId || ""}
         onValueChange={handleProjectChange}
@@ -311,11 +307,6 @@ const ProjectSelector: React.FC = () => {
           ))}
         </SelectContent>
       </Select>
-      {currentProject && (
-        <p className="text-xs text-gray-500 mt-1.5 truncate">
-          {currentProject.description || "No description"}
-        </p>
-      )}
     </div>
   );
 };

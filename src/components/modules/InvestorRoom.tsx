@@ -13,6 +13,8 @@ import { Progress } from "../ui/progress";
 import { exportEnhancedFinancialModel } from "../../utils/financialModelExport";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
+import { Label } from "../ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { ModuleSummaries } from "./ModuleSummaries";
 import { useModuleSummaries } from "../../hooks/useModuleSummaries";
 import { exportToPDFWithCharts } from "../../utils/enhancedExportUtils";
@@ -28,7 +30,13 @@ import {
   PieChart,
   Target,
   Calendar,
+  Edit,
+  Trash2,
+  Save,
+  X,
+  Loader2,
 } from "lucide-react";
+import { useToast } from "../ui/use-toast";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import {
   selectResults as selectFinancialResults,
@@ -40,16 +48,18 @@ import {
   selectProjectId as selectUnitEconomicsProjectId,
   loadLatestUnitEconomics,
 } from "@/store/slices/unitEconomicsSlice";
+import {
+  selectMilestones,
+  selectMilestonesLoading,
+  selectMilestonesSaving,
+  loadMilestones,
+  createMilestone,
+  updateMilestone,
+  deleteMilestone,
+} from "@/store/slices/investorRoomSlice";
+import { Milestone } from "@/types";
 import { useEffect } from "react";
 
-interface Milestone {
-  id: string;
-  title: string;
-  description: string;
-  targetDate: string;
-  status: "completed" | "in-progress" | "pending";
-  progress: number;
-}
 
 interface CapTableEntry {
   id: string;
@@ -65,6 +75,7 @@ interface InvestorRoomProps {
 
 export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
   const dispatch = useAppDispatch();
+  const { toast } = useToast();
   const { summaries } = useModuleSummaries(projectId || undefined);
 
   // Get real data from Redux
@@ -72,6 +83,9 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
   const financialProjectId = useAppSelector(selectFinancialProjectId);
   const unitEconomicsMetrics = useAppSelector(selectUnitEconomicsMetrics);
   const unitEconomicsProjectId = useAppSelector(selectUnitEconomicsProjectId);
+  const milestones = useAppSelector(selectMilestones);
+  const milestonesLoading = useAppSelector(selectMilestonesLoading);
+  const milestonesSaving = useAppSelector(selectMilestonesSaving);
 
   // Fetch data if not already loaded (backup in case hook doesn't load)
   useEffect(() => {
@@ -82,6 +96,8 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
       if (!unitEconomicsProjectId) {
         dispatch(loadLatestUnitEconomics(projectId));
       }
+      // Load milestones
+      dispatch(loadMilestones(projectId));
     }
   }, [projectId, financialProjectId, unitEconomicsProjectId, dispatch]);
 
@@ -100,24 +116,9 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
       )
     : 0;
 
-  const [milestones, setMilestones] = useState<Milestone[]>([
-    {
-      id: "1",
-      title: "Product MVP Launch",
-      description: "Launch minimum viable product",
-      targetDate: "2024-03-15",
-      status: "completed",
-      progress: 100,
-    },
-    {
-      id: "2",
-      title: "First 1000 Users",
-      description: "Acquire first thousand active users",
-      targetDate: "2024-06-30",
-      status: "in-progress",
-      progress: 75,
-    },
-  ]);
+  // Edit mode state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Partial<Milestone>>({});
 
   const [capTable, setCapTable] = useState<CapTableEntry[]>([
     {
@@ -146,19 +147,98 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
   const [newMilestone, setNewMilestone] = useState({
     title: "",
     description: "",
-    targetDate: "",
+    target_date: "",
+    status: "pending" as const,
+    progress: 0,
   });
 
-  const addMilestone = () => {
-    if (newMilestone.title && newMilestone.targetDate) {
-      const milestone: Milestone = {
-        id: Date.now().toString(),
-        ...newMilestone,
-        status: "pending",
-        progress: 0,
-      };
-      setMilestones([...milestones, milestone]);
-      setNewMilestone({ title: "", description: "", targetDate: "" });
+  const addMilestone = async () => {
+    if (!projectId || !newMilestone.title || !newMilestone.target_date) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in title and target date",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await dispatch(
+        createMilestone({
+          project_id: projectId,
+          title: newMilestone.title,
+          description: newMilestone.description || undefined,
+          target_date: new Date(newMilestone.target_date).toISOString(),
+          status: newMilestone.status,
+          progress: newMilestone.progress,
+        })
+      ).unwrap();
+      
+      setNewMilestone({ title: "", description: "", target_date: "", status: "pending", progress: 0 });
+      toast({
+        title: "Success",
+        description: "Milestone created successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create milestone",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const startEdit = (milestone: Milestone) => {
+    setEditingId(milestone.id);
+    setEditForm(milestone);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditForm({});
+  };
+
+  const saveEdit = async () => {
+    if (!editingId || !editForm.title || !editForm.target_date) return;
+
+    try {
+      await dispatch(
+        updateMilestone({
+          id: editingId,
+          updates: editForm,
+        })
+      ).unwrap();
+      
+      setEditingId(null);
+      setEditForm({});
+      toast({
+        title: "Success",
+        description: "Milestone updated successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update milestone",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this milestone?")) return;
+
+    try {
+      await dispatch(deleteMilestone(id)).unwrap();
+      toast({
+        title: "Success",
+        description: "Milestone deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete milestone",
+        variant: "destructive",
+      });
     }
   };
 
@@ -351,66 +431,255 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {milestones.map((milestone) => (
-                <div
-                  key={milestone.id}
-                  className="p-4 border rounded-lg space-y-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium">{milestone.title}</h3>
-                    <Badge
-                      variant={
-                        milestone.status === "completed"
-                          ? "default"
-                          : milestone.status === "in-progress"
-                          ? "secondary"
-                          : "outline"
-                      }
-                    >
-                      {milestone.status}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    {milestone.description}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    <span className="text-sm">{milestone.targetDate}</span>
-                  </div>
-                  <Progress value={milestone.progress} className="w-full" />
+              {milestonesLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
                 </div>
-              ))}
+              ) : milestones.length === 0 ? (
+                <p className="text-center text-gray-500 py-8">
+                  No milestones yet. Add your first milestone below.
+                </p>
+              ) : (
+                milestones.map((milestone) => (
+                  <div
+                    key={milestone.id}
+                    className="p-4 border rounded-lg space-y-3"
+                  >
+                    {editingId === milestone.id ? (
+                      // Edit mode
+                      <div className="space-y-3">
+                        <div>
+                          <Label htmlFor="edit-title" className="text-left block mb-1.5">
+                            Title
+                          </Label>
+                          <Input
+                            id="edit-title"
+                            value={editForm.title || ""}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, title: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="edit-description" className="text-left block mb-1.5">
+                            Description
+                          </Label>
+                          <Textarea
+                            id="edit-description"
+                            value={editForm.description || ""}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                description: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <Label htmlFor="edit-date" className="text-left block mb-1.5">
+                              Target Date
+                            </Label>
+                            <Input
+                              id="edit-date"
+                              type="date"
+                              value={
+                                editForm.target_date
+                                  ? new Date(editForm.target_date)
+                                      .toISOString()
+                                      .split("T")[0]
+                                  : ""
+                              }
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  target_date: new Date(e.target.value).toISOString(),
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="edit-status" className="text-left block mb-1.5">
+                              Status
+                            </Label>
+                            <Select
+                              value={editForm.status}
+                              onValueChange={(value: "pending" | "in-progress" | "completed") =>
+                                setEditForm({ ...editForm, status: value })
+                              }
+                            >
+                              <SelectTrigger id="edit-status">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="in-progress">In Progress</SelectItem>
+                                <SelectItem value="completed">Completed</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label htmlFor="edit-progress" className="text-left block mb-1.5">
+                              Progress (%)
+                            </Label>
+                            <Input
+                              id="edit-progress"
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={editForm.progress || 0}
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  progress: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)),
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            onClick={saveEdit}
+                            disabled={milestonesSaving}
+                            size="sm"
+                          >
+                            {milestonesSaving ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <Save className="w-4 h-4 mr-2" />
+                            )}
+                            Save
+                          </Button>
+                          <Button
+                            onClick={cancelEdit}
+                            variant="outline"
+                            size="sm"
+                            disabled={milestonesSaving}
+                          >
+                            <X className="w-4 h-4 mr-2" />
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      // View mode
+                      <>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="font-medium text-lg">{milestone.title}</h3>
+                              <Badge
+                                variant={
+                                  milestone.status === "completed"
+                                    ? "default"
+                                    : milestone.status === "in-progress"
+                                    ? "secondary"
+                                    : "outline"
+                                }
+                              >
+                                {milestone.status}
+                              </Badge>
+                            </div>
+                            {milestone.description && (
+                              <p className="text-sm text-gray-600 mb-2">
+                                {milestone.description}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <Calendar className="w-4 h-4" />
+                              <span>
+                                {new Date(milestone.target_date).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => startEdit(milestone)}
+                              variant="ghost"
+                              size="sm"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              onClick={() => handleDelete(milestone.id)}
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Progress</span>
+                            <span className="font-medium">{milestone.progress}%</span>
+                          </div>
+                          <Progress value={milestone.progress} className="w-full" />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))
+              )}
 
               <div className="border-t pt-4 space-y-3">
                 <h4 className="font-medium">Add New Milestone</h4>
-                <Input
-                  placeholder="Milestone title"
-                  value={newMilestone.title}
-                  onChange={(e) =>
-                    setNewMilestone({ ...newMilestone, title: e.target.value })
-                  }
-                />
-                <Textarea
-                  placeholder="Description"
-                  value={newMilestone.description}
-                  onChange={(e) =>
-                    setNewMilestone({
-                      ...newMilestone,
-                      description: e.target.value,
-                    })
-                  }
-                />
-                <Input
-                  type="date"
-                  value={newMilestone.targetDate}
-                  onChange={(e) =>
-                    setNewMilestone({
-                      ...newMilestone,
-                      targetDate: e.target.value,
-                    })
-                  }
-                />
-                <Button onClick={addMilestone}>Add Milestone</Button>
+                <div>
+                  <Label htmlFor="new-title" className="text-left block mb-1.5">
+                    Title*
+                  </Label>
+                  <Input
+                    id="new-title"
+                    placeholder="e.g., Launch Beta Version"
+                    value={newMilestone.title}
+                    onChange={(e) =>
+                      setNewMilestone({ ...newMilestone, title: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-description" className="text-left block mb-1.5">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="new-description"
+                    placeholder="Add details about this milestone..."
+                    value={newMilestone.description}
+                    onChange={(e) =>
+                      setNewMilestone({
+                        ...newMilestone,
+                        description: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-date" className="text-left block mb-1.5">
+                    Target Date*
+                  </Label>
+                  <Input
+                    id="new-date"
+                    type="date"
+                    value={newMilestone.target_date}
+                    onChange={(e) =>
+                      setNewMilestone({
+                        ...newMilestone,
+                        target_date: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <Button
+                  onClick={addMilestone}
+                  disabled={milestonesSaving}
+                  className="w-full sm:w-auto"
+                >
+                  {milestonesSaving ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : null}
+                  Add Milestone
+                </Button>
               </div>
             </CardContent>
           </Card>

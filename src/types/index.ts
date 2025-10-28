@@ -447,6 +447,19 @@ export interface TeamActivity {
   user?: User;
 }
 
+// Investor Room Types
+export interface Milestone {
+  id: string;
+  project_id: string;
+  title: string;
+  description?: string;
+  target_date: string;
+  status: 'pending' | 'in-progress' | 'completed';
+  progress: number; // 0-100
+  created_at: string;
+  updated_at: string;
+}
+
 // Legacy types for backward compatibility
 export interface PricePoint {
   tier: string;

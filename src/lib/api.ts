@@ -33,6 +33,7 @@ import {
   DiscussionComment,
   TeamTask,
   TeamActivity,
+  Milestone,
 } from "@/types";
 
 // User API
@@ -1439,6 +1440,53 @@ export const gtmPlansApi = {
 
   async delete(id: string): Promise<void> {
     const { error } = await supabase.from("gtm_plans").delete().eq("id", id);
+
+    if (error) throw error;
+  },
+};
+
+// Milestones API
+export const milestonesApi = {
+  async getByProjectId(projectId: string): Promise<Milestone[]> {
+    const { data, error } = await supabase
+      .from("milestones")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("target_date", { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async create(milestone: Omit<Milestone, "id" | "created_at" | "updated_at">): Promise<Milestone> {
+    const { data, error } = await supabase
+      .from("milestones")
+      .insert({
+        ...milestone,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async update(id: string, updates: Partial<Milestone>): Promise<Milestone> {
+    const { data, error } = await supabase
+      .from("milestones")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase.from("milestones").delete().eq("id", id);
 
     if (error) throw error;
   },

@@ -1328,6 +1328,48 @@ CREATE POLICY "System can create activities" ON team_activities
     )
   );
 
+-- Milestones table for Investor Room
+CREATE TABLE IF NOT EXISTS public.milestones (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL,
+  title text NOT NULL,
+  description text,
+  target_date timestamp with time zone NOT NULL,
+  status text DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'in-progress'::text, 'completed'::text])),
+  progress integer DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT milestones_pkey PRIMARY KEY (id),
+  CONSTRAINT milestones_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id) ON DELETE CASCADE
+);
+
+-- Create index for faster project lookups
+CREATE INDEX IF NOT EXISTS idx_milestones_project_id ON public.milestones(project_id);
+
+-- Enable RLS for milestones
+ALTER TABLE milestones ENABLE ROW LEVEL SECURITY;
+
+-- Milestones RLS Policies
+DROP POLICY IF EXISTS "Users can view milestones for their projects" ON milestones;
+CREATE POLICY "Users can view milestones for their projects" ON milestones
+  FOR SELECT USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid())
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can manage milestones for their projects" ON milestones;
+CREATE POLICY "Users can manage milestones for their projects" ON milestones
+  FOR ALL USING (
+    project_id IN (
+      SELECT id FROM projects 
+      WHERE owner_id = auth.uid() OR 
+      id IN (SELECT project_id FROM project_collaborators WHERE user_id = auth.uid() AND role IN ('owner', 'editor'))
+    )
+  );
+
 -- Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;

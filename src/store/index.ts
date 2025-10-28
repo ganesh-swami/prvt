@@ -12,6 +12,7 @@ import risksReducer from "./slices/riskSlice";
 import gtmPlannerReducer from "./slices/gtmPlannerSlice";
 import projectsReducer from "./slices/projectsSlice";
 import teamCollaborationReducer from "./slices/teamCollaborationSlice";
+import investorRoomReducer from "./slices/investorRoomSlice";
 
 export const store = configureStore({
   reducer: {
@@ -28,6 +29,7 @@ export const store = configureStore({
     gtmPlanner: gtmPlannerReducer,
     projects: projectsReducer,
     teamCollaboration: teamCollaborationReducer,
+    investorRoom: investorRoomReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
