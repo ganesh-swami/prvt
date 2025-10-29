@@ -78,20 +78,27 @@ export const userApi = {
   },
 
   async getProjectTeamMembers(projectId: string): Promise<User[]> {
-    const { data, error } = await supabase
+    // First, get all collaborator user_ids for this project
+    const { data: collaborators, error: collabError } = await supabase
       .from("project_collaborators")
-      .select(
-        `
-        user_id,
-        users!project_collaborators_user_id_fkey (*)
-      `
-      )
+      .select("user_id")
       .eq("project_id", projectId);
 
-    if (error) throw error;
-    
-    // Filter out null users and return User array
-    return (data?.map((item) => item.users).filter(Boolean) as unknown as User[]) || [];
+    if (collabError) throw collabError;
+    if (!collaborators || collaborators.length === 0) return [];
+
+    // Extract user IDs
+    const userIds = collaborators.map((c) => c.user_id).filter(Boolean);
+    if (userIds.length === 0) return [];
+
+    // Then fetch the user details
+    const { data: users, error: usersError } = await supabase
+      .from("users")
+      .select("*")
+      .in("id", userIds);
+
+    if (usersError) throw usersError;
+    return users || [];
   },
 };
 
@@ -221,18 +228,24 @@ export const projectApi = {
   async getProjectCollaborators(
     projectId: string
   ): Promise<ProjectCollaborator[]> {
-    const { data, error } = await supabase
+    // Get collaborator records
+    const { data: collaborators, error: collabError } = await supabase
       .from("project_collaborators")
-      .select(
-        `
-        *,
-        users (name, email, avatar_url)
-      `
-      )
+      .select("*")
       .eq("project_id", projectId);
 
-    if (error) throw error;
-    return data || [];
+    if (collabError) throw collabError;
+    if (!collaborators || collaborators.length === 0) return [];
+
+    // Reuse getProjectTeamMembers to get user details
+    const users = await userApi.getProjectTeamMembers(projectId);
+    
+    // Map users to collaborators
+    const userMap = new Map(users.map((u) => [u.id, u]));
+    return collaborators.map((collab) => ({
+      ...collab,
+      users: userMap.get(collab.user_id) || null,
+    })) as ProjectCollaborator[];
   },
 
   async addCollaborator(
@@ -854,7 +867,7 @@ export const pricingLabApi = {
       .from("pricing_lab")
       .select("*")
       .eq("project_id", projectId)
-      .order("created_at", { ascending: false});
+      .order("created_at", { ascending: false });
 
     if (error) throw error;
     return data || [];
@@ -873,10 +886,7 @@ export const pricingLabApi = {
     return data;
   },
 
-  async update(
-    id: string,
-    updates: Partial<PricingLab>
-  ): Promise<PricingLab> {
+  async update(id: string, updates: Partial<PricingLab>): Promise<PricingLab> {
     const { data, error } = await supabase
       .from("pricing_lab")
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -989,7 +999,9 @@ export const risksApi = {
     return data || [];
   },
 
-  async create(risk: Omit<Risk, "id" | "created_at" | "updated_at">): Promise<Risk> {
+  async create(
+    risk: Omit<Risk, "id" | "created_at" | "updated_at">
+  ): Promise<Risk> {
     const { data, error } = await supabase
       .from("risks")
       .insert(risk)
@@ -1458,7 +1470,9 @@ export const milestonesApi = {
     return data || [];
   },
 
-  async create(milestone: Omit<Milestone, "id" | "created_at" | "updated_at">): Promise<Milestone> {
+  async create(
+    milestone: Omit<Milestone, "id" | "created_at" | "updated_at">
+  ): Promise<Milestone> {
     const { data, error } = await supabase
       .from("milestones")
       .insert({

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   setMarketData,
@@ -40,13 +40,15 @@ import {
   Globe,
   Calculator,
   DollarSign,
+  FileText,
+  Loader2,
 } from "lucide-react";
-import { ExportOptions } from "@/components/common/ExportOptions";
 import { CustomTooltip } from "@/components/common/CustomTooltip";
 import { MarketSizingAnalysis } from "@/components/modules/MarketSizingAnalysis";
 import { MarketSizingMethodology } from "@/components/modules/MarketSizingMethodology";
-import { exportModuleData } from "@/utils/moduleExportUtils";
 import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+import jsPDF from "jspdf";
 
 interface MarketSizingEnhancedProps {
   projectId: string;
@@ -54,7 +56,8 @@ interface MarketSizingEnhancedProps {
 
 const MarketSizingEnhanced: React.FC<MarketSizingEnhancedProps> = ({ projectId }) => {
   const dispatch = useAppDispatch();
-  const { toast } = useToast();
+  const { toast: toastHook } = useToast();
+  const [isExporting, setIsExporting] = useState(false);
   const marketData = useAppSelector(selectMarketData);
   const approach = useAppSelector(selectApproach);
   const valueUnit = useAppSelector(selectValueUnit);
@@ -78,13 +81,38 @@ const MarketSizingEnhanced: React.FC<MarketSizingEnhancedProps> = ({ projectId }
   // Show error toast
   useEffect(() => {
     if (error) {
-      toast({
+      toastHook({
         title: "Error",
         description: error,
         variant: "destructive",
       });
     }
-  }, [error, toast]);
+  }, [error, toastHook]);
+
+  // Auto-calculate when data is loaded
+  useEffect(() => {
+    const hasData = 
+      marketData.totalMarket && 
+      marketData.targetSegment && 
+      marketData.penetrationRate && 
+      marketData.avgRevenue;
+    
+    // Only auto-calculate if we have data but no results yet
+    if (hasData && (!results.tam || results.tam === 0)) {
+      const total = parseFloat(marketData.totalMarket) || 0;
+      const segment = parseFloat(marketData.targetSegment) || 0;
+      const penetration = parseFloat(marketData.penetrationRate) || 0;
+      const avgRev = parseFloat(marketData.avgRevenue) || 0;
+
+      const multiplier = valueUnit === "billions" ? 1000000000 : 1000000;
+      const tam = total * multiplier;
+      const sam = tam * (segment / 100);
+      const som = sam * (penetration / 100);
+      const revenueOpportunity = som * avgRev;
+
+      dispatch(setResults({ tam, sam, som, revenueOpportunity }));
+    }
+  }, [marketData, results.tam, valueUnit, dispatch]);
 
   // Auto-save function
   const handleSave = async () => {
@@ -103,7 +131,7 @@ const MarketSizingEnhanced: React.FC<MarketSizingEnhancedProps> = ({ projectId }
         })
       ).unwrap();
       
-      toast({
+      toastHook({
         title: "Saved",
         description: "Market sizing data saved successfully",
       });
@@ -136,14 +164,293 @@ const MarketSizingEnhanced: React.FC<MarketSizingEnhancedProps> = ({ projectId }
     return `$${(value / divisor).toFixed(2)}${unit}`;
   };
 
- 
-  const handleExport = (format: string) => {
-    exportModuleData(
-      { marketData, results },
-      format,                  
-      "market-sizing",         
-      "Market Sizing Report"
-    );
+  const getMarketAttractiveness = () => {
+    const tamValue = results.tam / (valueUnit === "billions" ? 1000000000 : 1000000);
+    if (tamValue > 10) return { level: "High", description: "high potential for investment and growth" };
+    if (tamValue > 1) return { level: "Medium", description: "moderate potential for investment" };
+    return { level: "Low", description: "limited market potential" };
+  };
+
+  const getCompetitivePosition = () => {
+    const penetration = parseFloat(marketData.penetrationRate) || 0;
+    if (penetration > 10) return { level: "Aggressive", description: "aggressive market entry approach" };
+    if (penetration > 5) return { level: "Moderate", description: "moderate market entry approach" };
+    return { level: "Conservative", description: "conservative market entry approach" };
+  };
+
+  const exportToPDF = async () => {
+    // Check if results are calculated
+    if (!results.tam || results.tam === 0) {
+      toast.error("Please calculate market size before exporting!");
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 15;
+      const contentWidth = pageWidth - 2 * margin;
+      let yPos = 20;
+
+      // Title Page
+      doc.setFillColor(59, 130, 246); // Blue
+      doc.rect(0, 0, pageWidth, 70, "F");
+
+      doc.setDrawColor(255, 255, 255);
+      doc.setLineWidth(0.5);
+      doc.line(margin, 60, pageWidth - margin, 60);
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(26);
+      doc.setFont("helvetica", "bold");
+      doc.text("Market Analysis Report", pageWidth / 2, 25, { align: "center" });
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.text(
+        `Market Sizing Analysis • ${new Date().toLocaleDateString()}`,
+        pageWidth / 2,
+        50,
+        { align: "center" }
+      );
+
+      yPos = 85;
+
+      // Three metric cards in one row
+      const cardWidth = (contentWidth - 8) / 3; // 3 cards with 4mm gap each
+      const cardHeight = 40;
+      
+      const metrics = [
+        {
+          label: "TAM",
+          value: formatValue(results.tam),
+          description: "Total Addressable Market",
+          color: [59, 130, 246], // Blue
+          bgColor: [239, 246, 255] // Light blue
+        },
+        {
+          label: "SAM",
+          value: formatValue(results.sam),
+          description: "Serviceable Addressable Market",
+          color: [168, 85, 247], // Purple
+          bgColor: [250, 245, 255] // Light purple
+        },
+        {
+          label: "SOM",
+          value: formatValue(results.som),
+          description: "Serviceable Obtainable Market",
+          color: [34, 197, 94], // Green
+          bgColor: [240, 253, 244] // Light green
+        }
+      ];
+
+      metrics.forEach((metric, index) => {
+        const xPos = margin + (cardWidth + 4) * index;
+
+        // Card background
+        doc.setFillColor(metric.bgColor[0], metric.bgColor[1], metric.bgColor[2]);
+        doc.roundedRect(xPos, yPos, cardWidth, cardHeight, 3, 3, "F");
+        doc.setDrawColor(metric.color[0], metric.color[1], metric.color[2]);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(xPos, yPos, cardWidth, cardHeight, 3, 3, "S");
+
+        // Icon circle at top
+        doc.setFillColor(metric.color[0], metric.color[1], metric.color[2]);
+        doc.circle(xPos + cardWidth / 2, yPos + 8, 3.5, "F");
+        
+        // Label
+        doc.setTextColor(metric.color[0], metric.color[1], metric.color[2]);
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.text(metric.label, xPos + cardWidth / 2, yPos + 17, { align: "center" });
+
+        // Value
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.text(metric.value, xPos + cardWidth / 2, yPos + 26, { align: "center" });
+
+        // Description
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(107, 114, 128);
+        const descLines = doc.splitTextToSize(metric.description, cardWidth - 4);
+        doc.text(descLines, xPos + cardWidth / 2, yPos + 32, { align: "center" });
+      });
+
+      yPos += cardHeight + 10;
+
+      // Analysis sections
+      const attractiveness = getMarketAttractiveness();
+      const competitive = getCompetitivePosition();
+
+      // Market Attractiveness Section
+      if (yPos > pageHeight - 50) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      yPos += 5;
+      doc.setFillColor(249, 250, 251);
+      doc.roundedRect(margin, yPos, contentWidth, 25, 2, 2, "F");
+      doc.setDrawColor(229, 231, 235);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(margin, yPos, contentWidth, 25, 2, 2, "S");
+
+      doc.setTextColor(31, 41, 55);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("Market Attractiveness", margin + 3, yPos + 6);
+
+      // Badge
+      const attractColor = attractiveness.level === "High" ? [34, 197, 94] : 
+                          attractiveness.level === "Medium" ? [234, 179, 8] : [239, 68, 68];
+      doc.setFillColor(attractColor[0], attractColor[1], attractColor[2]);
+      doc.roundedRect(pageWidth - margin - 25, yPos + 2, 23, 6, 1, 1, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.text(attractiveness.level, pageWidth - margin - 13.5, yPos + 5.5, { align: "center" });
+
+      doc.setTextColor(75, 85, 99);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      const attractText = doc.splitTextToSize(
+        `Based on TAM size of ${formatValue(results.tam)}, this market shows ${attractiveness.description}.`,
+        contentWidth - 6
+      );
+      doc.text(attractText, margin + 3, yPos + 13);
+
+      yPos += 30;
+
+      // Competitive Strategy Section
+      if (yPos > pageHeight - 50) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setFillColor(249, 250, 251);
+      doc.roundedRect(margin, yPos, contentWidth, 25, 2, 2, "F");
+      doc.setDrawColor(229, 231, 235);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(margin, yPos, contentWidth, 25, 2, 2, "S");
+
+      doc.setTextColor(31, 41, 55);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("Competitive Strategy", margin + 3, yPos + 6);
+
+      // Badge
+      const compColor = competitive.level === "Conservative" ? [34, 197, 94] : 
+                       competitive.level === "Moderate" ? [234, 179, 8] : [239, 68, 68];
+      doc.setFillColor(compColor[0], compColor[1], compColor[2]);
+      doc.roundedRect(pageWidth - margin - 32, yPos + 2, 30, 6, 1, 1, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.text(competitive.level, pageWidth - margin - 17, yPos + 5.5, { align: "center" });
+
+      doc.setTextColor(75, 85, 99);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      const compText = doc.splitTextToSize(
+        `With ${marketData.penetrationRate}% market penetration target, this represents a ${competitive.description}.`,
+        contentWidth - 6
+      );
+      doc.text(compText, margin + 3, yPos + 13);
+
+      yPos += 30;
+
+      // Revenue Opportunity Section
+      if (yPos > pageHeight - 50) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      yPos += 5;
+      const revCardHeight = 45;
+      
+      // Card background with border
+      doc.setFillColor(255, 247, 237); // Light orange
+      doc.roundedRect(margin, yPos, contentWidth, revCardHeight, 3, 3, "F");
+      doc.setDrawColor(249, 115, 22); // Orange border
+      doc.setLineWidth(0.8);
+      doc.roundedRect(margin, yPos, contentWidth, revCardHeight, 3, 3, "S");
+
+      // Icon circle
+      doc.setFillColor(249, 115, 22); // Orange
+      doc.circle(margin + 8, yPos + 12, 4, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("$", margin + 8, yPos + 14, { align: "center" });
+
+      // Title
+      doc.setTextColor(249, 115, 22);
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.text("Revenue Opportunity", margin + 18, yPos + 13);
+
+      // Value
+      doc.setFontSize(26);
+      doc.setFont("helvetica", "bold");
+      doc.text(
+        `$${results.revenueOpportunity.toLocaleString()}`,
+        pageWidth / 2,
+        yPos + 28,
+        { align: "center" }
+      );
+
+      // Description
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(107, 114, 128);
+      doc.text("Potential Annual Revenue", pageWidth / 2, yPos + 37, { align: "center" });
+
+      // Footer
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.3);
+        doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
+
+        doc.setFontSize(8);
+        doc.setTextColor(107, 114, 128);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Page ${i} of ${pageCount}`, margin, pageHeight - 8);
+
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(59, 130, 246);
+        doc.text("Strategize+", pageWidth / 2, pageHeight - 8, { align: "center" });
+
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(107, 114, 128);
+        doc.text(
+          new Date().toLocaleDateString(),
+          pageWidth - margin,
+          pageHeight - 8,
+          { align: "right" }
+        );
+      }
+
+      const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      doc.save(`market-analysis-report-${timestamp}.pdf`);
+      toast.success("PDF exported successfully!");
+    } catch (error) {
+      console.error("PDF export error:", error);
+      toast.error("Failed to export PDF. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   if (loading) {
@@ -187,11 +494,24 @@ const MarketSizingEnhanced: React.FC<MarketSizingEnhancedProps> = ({ projectId }
           >
             {saving ? "Saving..." : "Save"}
           </Button>
-          <ExportOptions
-            data={{ marketData, results }}
-            filename="market-sizing"
-            onExport={handleExport}
-          />
+          <Button
+            onClick={exportToPDF}
+            disabled={isExporting}
+            variant="outline"
+            size="sm"
+          >
+            {isExporting ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <FileText className="h-4 w-4 mr-2 text-red-600" />
+                Export PDF
+              </>
+            )}
+          </Button>
         </div>
       </div>
 

@@ -44,7 +44,7 @@ export function TeamCollaborationEnhanced({
   const [activeTab, setActiveTab] = useState("tasks");
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [collaborators, setCollaborators] = useState<any[]>([]);
-  
+
   // Form states
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showDiscussionForm, setShowDiscussionForm] = useState(false);
@@ -55,9 +55,12 @@ export function TeamCollaborationEnhanced({
     due_date: "",
     assigned_to: "",
   });
-  const [newDiscussion, setNewDiscussion] = useState({ title: "", content: "" });
+  const [newDiscussion, setNewDiscussion] = useState({
+    title: "",
+    content: "",
+  });
   const [commentText, setCommentText] = useState("");
-  
+
   // Redux selectors
   const discussions = useAppSelector(selectDiscussions);
   const tasks = useAppSelector(selectTasks);
@@ -66,12 +69,14 @@ export function TeamCollaborationEnhanced({
   const discussionsLoading = useAppSelector(selectDiscussionsLoading);
   const tasksLoading = useAppSelector(selectTasksLoading);
   const saving = useAppSelector(selectSaving);
-  
+
   // Get comments for selected discussion
   const discussionComments = useAppSelector((state) =>
-    selectedDiscussion ? selectDiscussionComments(state, selectedDiscussion.id) : []
+    selectedDiscussion
+      ? selectDiscussionComments(state, selectedDiscussion.id)
+      : []
   );
-  
+
   // Load current user and data
   useEffect(() => {
     const loadUser = async () => {
@@ -79,14 +84,14 @@ export function TeamCollaborationEnhanced({
         const user = await userApi.getCurrentUser();
         setCurrentUser(user);
         // Set current user as default assignee
-        setNewTask(prev => ({ ...prev, assigned_to: user.id }));
+        setNewTask((prev) => ({ ...prev, assigned_to: user.id }));
       } catch (error) {
         console.error("Error loading user:", error);
       }
     };
     loadUser();
   }, []);
-  
+
   // Load project collaborators
   useEffect(() => {
     const loadCollaborators = async () => {
@@ -101,7 +106,7 @@ export function TeamCollaborationEnhanced({
       loadCollaborators();
     }
   }, [projectId]);
-  
+
   useEffect(() => {
     if (projectId) {
       dispatch(fetchDiscussions(projectId));
@@ -109,14 +114,14 @@ export function TeamCollaborationEnhanced({
       dispatch(fetchActivities(projectId));
     }
   }, [projectId, dispatch]);
-  
+
   // Load comments when discussion is selected
   useEffect(() => {
     if (selectedDiscussion) {
       dispatch(fetchComments(selectedDiscussion.id));
     }
   }, [selectedDiscussion, dispatch]);
-  
+
   // Handlers
   const handleCreateTask = async () => {
     if (!newTask.title) {
@@ -131,22 +136,24 @@ export function TeamCollaborationEnhanced({
       toast.error("User not loaded");
       return;
     }
-    
+
     try {
-      await dispatch(createTask({
-        projectId,
-        userId: currentUser.id,
-        task: newTask,
-      })).unwrap();
-      
+      await dispatch(
+        createTask({
+          projectId,
+          userId: currentUser.id,
+          task: newTask,
+        })
+      ).unwrap();
+
       toast.success("Task created successfully!");
       // Reset form with current user as default assignee
-      setNewTask({ 
-        title: "", 
-        description: "", 
-        priority: "medium", 
-        due_date: "", 
-        assigned_to: currentUser.id 
+      setNewTask({
+        title: "",
+        description: "",
+        priority: "medium",
+        due_date: "",
+        assigned_to: currentUser.id,
       });
       setShowTaskForm(false);
     } catch (error) {
@@ -154,20 +161,22 @@ export function TeamCollaborationEnhanced({
       console.error(error);
     }
   };
-  
+
   const handleCreateDiscussion = async () => {
     if (!newDiscussion.title || !newDiscussion.content || !currentUser) {
       toast.error("Please fill in all fields");
       return;
     }
-    
+
     try {
-      await dispatch(createDiscussion({
-        projectId,
-        userId: currentUser.id,
-        discussion: newDiscussion,
-      })).unwrap();
-      
+      await dispatch(
+        createDiscussion({
+          projectId,
+          userId: currentUser.id,
+          discussion: newDiscussion,
+        })
+      ).unwrap();
+
       toast.success("Discussion created successfully!");
       setNewDiscussion({ title: "", content: "" });
       setShowDiscussionForm(false);
@@ -176,18 +185,20 @@ export function TeamCollaborationEnhanced({
       console.error(error);
     }
   };
-  
+
   const handleAddComment = async () => {
     if (!commentText.trim() || !currentUser || !selectedDiscussion) return;
-    
+
     try {
-      await dispatch(createComment({
-        discussionId: selectedDiscussion.id,
-        projectId,
-        userId: currentUser.id,
-        content: commentText,
-      })).unwrap();
-      
+      await dispatch(
+        createComment({
+          discussionId: selectedDiscussion.id,
+          projectId,
+          userId: currentUser.id,
+          content: commentText,
+        })
+      ).unwrap();
+
       setCommentText("");
       toast.success("Comment added!");
     } catch (error) {
@@ -195,28 +206,30 @@ export function TeamCollaborationEnhanced({
       console.error(error);
     }
   };
-  
+
   const handleUpdateTaskStatus = async (taskId: string, status: string) => {
     if (!currentUser) return;
-    
+
     try {
-      await dispatch(updateTask({
-        taskId,
-        projectId,
-        userId: currentUser.id,
-        updates: { status: status as any },
-      })).unwrap();
-      
+      await dispatch(
+        updateTask({
+          taskId,
+          projectId,
+          userId: currentUser.id,
+          updates: { status: status as any },
+        })
+      ).unwrap();
+
       toast.success("Task updated!");
     } catch (error) {
       toast.error("Failed to update task");
       console.error(error);
     }
   };
-  
+
   const handleDeleteTask = async (taskId: string) => {
     if (!confirm("Are you sure you want to delete this task?")) return;
-    
+
     try {
       await dispatch(deleteTask(taskId)).unwrap();
       toast.success("Task deleted!");
@@ -225,10 +238,10 @@ export function TeamCollaborationEnhanced({
       console.error(error);
     }
   };
-  
+
   const handleDeleteDiscussion = async (discussionId: string) => {
     if (!confirm("Are you sure you want to delete this discussion?")) return;
-    
+
     try {
       await dispatch(deleteDiscussion(discussionId)).unwrap();
       toast.success("Discussion deleted!");
@@ -239,9 +252,12 @@ export function TeamCollaborationEnhanced({
     }
   };
 
-  const handleDeleteComment = async (commentId: string, discussionId: string) => {
+  const handleDeleteComment = async (
+    commentId: string,
+    discussionId: string
+  ) => {
     if (!confirm("Are you sure you want to delete this comment?")) return;
-    
+
     try {
       await dispatch(deleteComment({ commentId, discussionId })).unwrap();
       toast.success("Comment deleted!");
@@ -256,7 +272,9 @@ export function TeamCollaborationEnhanced({
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Team Collaboration</h1>
-        <p className="text-gray-600">Manage tasks, discussions, and team activity</p>
+        <p className="text-gray-600">
+          Manage tasks, discussions, and team activity
+        </p>
       </div>
 
       {/* Navigation Tabs */}
@@ -322,7 +340,10 @@ export function TeamCollaborationEnhanced({
             <div className="col-span-1 space-y-4">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-semibold">Discussions</h2>
-                <Button size="sm" onClick={() => setShowDiscussionForm(!showDiscussionForm)}>
+                <Button
+                  size="sm"
+                  onClick={() => setShowDiscussionForm(!showDiscussionForm)}
+                >
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>
@@ -341,7 +362,9 @@ export function TeamCollaborationEnhanced({
                 discussions={discussions}
                 selectedDiscussionId={selectedDiscussion?.id || null}
                 loading={discussionsLoading}
-                onSelectDiscussion={(discussion) => dispatch(setSelectedDiscussion(discussion))}
+                onSelectDiscussion={(discussion) =>
+                  dispatch(setSelectedDiscussion(discussion))
+                }
               />
             </div>
 

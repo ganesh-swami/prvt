@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Avatar, AvatarFallback } from '../ui/avatar';
-import { supabase } from '@/lib/supabase';
+import React, { useState, useEffect } from "react";
+import { Avatar, AvatarFallback } from "../ui/avatar";
+import { supabase } from "@/lib/supabase";
+import { userApi } from "@/lib/api";
 
 interface User {
   id: string;
@@ -16,41 +17,46 @@ interface MentionsDropdownProps {
   projectId?: string;
 }
 
-export function MentionsDropdown({ query, onSelect, position, projectId }: MentionsDropdownProps) {
+export function MentionsDropdown({
+  query,
+  onSelect,
+  position,
+  projectId,
+}: MentionsDropdownProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
       if (!query) return;
-      
+
       setLoading(true);
       try {
-        let usersQuery = supabase
-          .from('users')
-          .select('id, name, email, avatar_url')
-          .ilike('name', `%${query}%`)
-          .limit(5);
-
         // If we have a project ID, prioritize project collaborators
         if (projectId) {
-          const { data: collaborators } = await supabase
-            .from('project_collaborators')
-            .select('user:users(id, name, email, avatar_url)')
-            .eq('project_id', projectId)
-            .ilike('user.name', `%${query}%`);
+          const collaborators = await userApi.getProjectTeamMembers(projectId);
+          
+          // Filter by name match
+          const filteredUsers = collaborators.filter((u) =>
+            u.name?.toLowerCase().includes(query.toLowerCase())
+          );
 
-          if (collaborators) {
-            const collaboratorUsers = collaborators.map(c => c.user).filter(Boolean);
-            setUsers(collaboratorUsers as User[]);
+          if (filteredUsers.length > 0) {
+            setUsers(filteredUsers);
             return;
           }
         }
 
-        const { data } = await usersQuery;
+        // Fallback to searching all users
+        const { data } = await supabase
+          .from("users")
+          .select("id, name, email, avatar_url")
+          .ilike("name", `%${query}%`)
+          .limit(5);
+
         setUsers(data || []);
       } catch (error) {
-        console.error('Error fetching users:', error);
+        console.error("Error fetching users:", error);
       } finally {
         setLoading(false);
       }
@@ -81,8 +87,12 @@ export function MentionsDropdown({ query, onSelect, position, projectId }: Menti
               </AvatarFallback>
             </Avatar>
             <div>
-              <div className="text-sm font-medium">{user.name || user.email}</div>
-              {user.name && <div className="text-xs text-gray-500">{user.email}</div>}
+              <div className="text-sm font-medium">
+                {user.name || user.email}
+              </div>
+              {user.name && (
+                <div className="text-xs text-gray-500">{user.email}</div>
+              )}
             </div>
           </div>
         ))

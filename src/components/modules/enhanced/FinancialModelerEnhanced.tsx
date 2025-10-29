@@ -29,7 +29,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { BarChart3, Calculator, DollarSign, HelpCircle } from "lucide-react";
+import { BarChart3, Calculator, DollarSign, HelpCircle, FileText, Loader2 } from "lucide-react";
+import jsPDF from "jspdf";
 // Vite-friendly lazy imports
 const FinancialModelAnalysis = lazy(() => import("./FinancialModelAnalysis"));
 const FinancialModelVisualizations = lazy(
@@ -118,6 +119,7 @@ const FinancialModelerEnhanced: React.FC<FinancialModelerProps> = ({
   const [activeTab, setActiveTab] = useState<
     "inputs" | "forecasting" | "results" | "metrics" | "methods" | "projections"
   >("inputs");
+  const [isExporting, setIsExporting] = useState(false);
 
   // Redux state
   const storeProjectId = useAppSelector(selectProjectId);
@@ -284,6 +286,457 @@ const FinancialModelerEnhanced: React.FC<FinancialModelerProps> = ({
     }
   }, [error]);
 
+  // PDF Export Function
+  const exportToPDF = async () => {
+    if (!results.totalRevenue || results.totalRevenue === 0) {
+      toast.error("Please calculate the financial model before exporting!");
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 15;
+      const contentWidth = pageWidth - 2 * margin;
+      let yPos = 20;
+
+      // Title Page
+      doc.setFillColor(59, 130, 246); // Blue
+      doc.rect(0, 0, pageWidth, 70, "F");
+
+      doc.setDrawColor(255, 255, 255);
+      doc.setLineWidth(0.5);
+      doc.line(margin, 60, pageWidth - margin, 60);
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(26);
+      doc.setFont("helvetica", "bold");
+      doc.text("Financial Model Analysis", pageWidth / 2, 25, { align: "center" });
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.text(
+        `Financial Performance Report \u2022 ${new Date().toLocaleDateString()}`,
+        pageWidth / 2,
+        50,
+        { align: "center" }
+      );
+
+      yPos = 85;
+
+      // Helper function for health status
+      const getHealthStatus = (value: number, thresholds: { good: number; excellent: number }) => {
+        if (value >= thresholds.excellent) return { status: 'Excellent', color: [34, 197, 94] };
+        if (value >= thresholds.good) return { status: 'Good', color: [59, 130, 246] };
+        return { status: 'Needs Improvement', color: [239, 68, 68] };
+      };
+
+      const cashFlowPct = results.totalRevenue > 0 ? (results.operatingCashFlow / results.totalRevenue) * 100 : 0;
+      const grossMarginHealth = getHealthStatus(results.grossMargin, { good: 40, excellent: 60 });
+      const netMarginHealth = getHealthStatus(results.netMargin, { good: 10, excellent: 20 });
+      const cashFlowHealth = getHealthStatus(cashFlowPct, { good: 15, excellent: 25 });
+
+      // Three Health Metrics in one row
+      const metricWidth = (contentWidth - 8) / 3;
+      const metricHeight = 35;
+
+      const healthMetrics = [
+        {
+          title: "Gross Margin Health",
+          value: `${results.grossMargin.toFixed(1)}%`,
+          status: grossMarginHealth.status,
+          color: grossMarginHealth.color,
+        },
+        {
+          title: "Net Margin Health",
+          value: `${results.netMargin.toFixed(1)}%`,
+          status: netMarginHealth.status,
+          color: netMarginHealth.color,
+        },
+        {
+          title: "Cash Flow Health",
+          value: `${cashFlowPct.toFixed(1)}%`,
+          status: cashFlowHealth.status,
+          color: cashFlowHealth.color,
+        },
+      ];
+
+      healthMetrics.forEach((metric, index) => {
+        const xPos = margin + (metricWidth + 4) * index;
+
+        // Card background
+        doc.setFillColor(249, 250, 251);
+        doc.roundedRect(xPos, yPos, metricWidth, metricHeight, 3, 3, "F");
+        doc.setDrawColor(metric.color[0], metric.color[1], metric.color[2]);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(xPos, yPos, metricWidth, metricHeight, 3, 3, "S");
+
+        // Title
+        doc.setTextColor(75, 85, 99);
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "bold");
+        doc.text(metric.title, xPos + metricWidth / 2, yPos + 7, { align: "center" });
+
+        // Status badge
+        doc.setFillColor(metric.color[0], metric.color[1], metric.color[2]);
+        const badgeWidth = 25;
+        doc.roundedRect(xPos + (metricWidth - badgeWidth) / 2, yPos + 11, badgeWidth, 5, 1, 1, "F");
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(6);
+        doc.setFont("helvetica", "bold");
+        doc.text(metric.status, xPos + metricWidth / 2, yPos + 14.5, { align: "center" });
+
+        // Value
+        doc.setTextColor(31, 41, 55);
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text(metric.value, xPos + metricWidth / 2, yPos + 26, { align: "center" });
+      });
+
+      yPos += metricHeight + 10;
+
+      // Profitability Analysis Section
+      if (yPos > pageHeight - 60) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setFillColor(249, 250, 251);
+      doc.roundedRect(margin, yPos, contentWidth / 2 - 2, 45, 2, 2, "F");
+      doc.setDrawColor(229, 231, 235);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(margin, yPos, contentWidth / 2 - 2, 45, 2, 2, "S");
+
+      doc.setTextColor(31, 41, 55);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("Profitability Analysis", margin + 3, yPos + 7);
+
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(75, 85, 99);
+
+      const profitMetrics = [
+        ["Gross Profit:", `$${results.grossProfit.toLocaleString()}`],
+        ["EBITDA:", `$${results.ebitda.toLocaleString()}`],
+        ["Net Profit:", `$${results.netProfit.toLocaleString()}`],
+        ["Profitability Ratio:", `${results.profitabilityRatio.toFixed(2)}x`],
+      ];
+
+      profitMetrics.forEach(([label, value], index) => {
+        const yOffset = yPos + 15 + (index * 7);
+        doc.setTextColor(75, 85, 99);
+        doc.text(label, margin + 3, yOffset);
+        doc.setTextColor(34, 197, 94);
+        doc.setFont("helvetica", "bold");
+        doc.text(value, margin + contentWidth / 2 - 5, yOffset, { align: "right" });
+        doc.setFont("helvetica", "normal");
+      });
+
+      // Cash Flow Analysis Section
+      const cashFlowX = margin + contentWidth / 2 + 2;
+      doc.setFillColor(249, 250, 251);
+      doc.roundedRect(cashFlowX, yPos, contentWidth / 2 - 2, 45, 2, 2, "F");
+      doc.setDrawColor(229, 231, 235);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(cashFlowX, yPos, contentWidth / 2 - 2, 45, 2, 2, "S");
+
+      doc.setTextColor(31, 41, 55);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("Cash Flow Analysis", cashFlowX + 3, yPos + 7);
+
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+
+      const cashFlowMetrics = [
+        ["Operating Cash Flow:", `$${results.operatingCashFlow.toLocaleString()}`],
+        ["Free Cash Flow:", `$${results.freeCashFlow.toLocaleString()}`],
+        ["Break-Even Month:", results.breakEvenMonth > 0 ? `Month ${results.breakEvenMonth}` : "Not reached"],
+        ["Revenue Growth:", `${results.revenueGrowthRate.toFixed(1)}%`],
+      ];
+
+      cashFlowMetrics.forEach(([label, value], index) => {
+        const yOffset = yPos + 15 + (index * 7);
+        doc.setTextColor(75, 85, 99);
+        doc.text(label, cashFlowX + 3, yOffset);
+        doc.setTextColor(34, 197, 94);
+        doc.setFont("helvetica", "bold");
+        doc.text(value, pageWidth - margin - 3, yOffset, { align: "right" });
+        doc.setFont("helvetica", "normal");
+      });
+
+      yPos += 50;
+
+      // Financial Visualizations - New Page
+      doc.addPage();
+      yPos = 20;
+
+      doc.setTextColor(31, 41, 55);
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("Financial Visualizations", margin, yPos);
+
+      yPos += 10;
+
+      // Revenue vs Profit Trend Line Chart
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(59, 130, 246);
+      doc.text("Revenue vs Profit Trend", margin, yPos);
+
+      yPos += 8;
+
+      const chartHeight = 60;
+      const chartWidth = contentWidth - 10;
+      const chartX = margin + 5;
+      const chartY = yPos;
+
+      // Draw axes
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.3);
+      doc.line(chartX, chartY + chartHeight, chartX + chartWidth, chartY + chartHeight); // X-axis
+      doc.line(chartX, chartY, chartX, chartY + chartHeight); // Y-axis
+
+      // Get data for chart (max 12 months for visibility)
+      const chartData = results.monthlyProjections.slice(0, 12);
+      const maxValue = Math.max(...chartData.map(m => Math.max(m.revenue, m.grossProfit, m.netProfit)));
+
+      if (chartData.length > 0 && maxValue > 0) {
+        const stepX = chartWidth / (chartData.length - 1 || 1);
+
+        // Draw lines
+        const drawLine = (dataKey: 'revenue' | 'grossProfit' | 'netProfit', color: number[]) => {
+          doc.setDrawColor(color[0], color[1], color[2]);
+          doc.setLineWidth(1);
+          for (let i = 0; i < chartData.length - 1; i++) {
+            const x1 = chartX + (i * stepX);
+            const y1 = chartY + chartHeight - (chartData[i][dataKey] / maxValue * chartHeight);
+            const x2 = chartX + ((i + 1) * stepX);
+            const y2 = chartY + chartHeight - (chartData[i + 1][dataKey] / maxValue * chartHeight);
+            doc.line(x1, y1, x2, y2);
+          }
+        };
+
+        drawLine('revenue', [59, 130, 246]); // Blue
+        drawLine('grossProfit', [16, 185, 129]); // Green
+        drawLine('netProfit', [139, 92, 246]); // Purple
+
+        // Legend
+        yPos += chartHeight + 5;
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "normal");
+        
+        doc.setDrawColor(59, 130, 246);
+        doc.setLineWidth(1);
+        doc.line(chartX, yPos, chartX + 5, yPos);
+        doc.setTextColor(59, 130, 246);
+        doc.text("Revenue", chartX + 7, yPos + 1);
+
+        doc.setDrawColor(16, 185, 129);
+        doc.line(chartX + 25, yPos, chartX + 30, yPos);
+        doc.setTextColor(16, 185, 129);
+        doc.text("Gross Profit", chartX + 32, yPos + 1);
+
+        doc.setDrawColor(139, 92, 246);
+        doc.line(chartX + 55, yPos, chartX + 60, yPos);
+        doc.setTextColor(139, 92, 246);
+        doc.text("Net Profit", chartX + 62, yPos + 1);
+
+        yPos += 10;
+      }
+
+      // Revenue Breakdown Pie Chart
+      if (yPos > pageHeight - 70) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(59, 130, 246);
+      doc.text("Revenue Breakdown", margin, yPos);
+
+      yPos += 8;
+
+      const pieX = margin + contentWidth / 2;
+      const pieY = yPos + 30;
+      const pieRadius = 25;
+
+      const cogs = results.totalCogs;
+      const opex = results.totalOperatingExpenses;
+      const profit = results.netProfit;
+      const total = cogs + opex + profit;
+
+      if (total > 0) {
+        const cogsAngle = (cogs / total) * 360;
+        const opexAngle = (opex / total) * 360;
+        const profitAngle = (profit / total) * 360;
+
+        // Draw COGS slice (red)
+        doc.setFillColor(239, 68, 68);
+        let currentAngle = 0;
+        const drawPieSlice = (angle: number) => {
+          const steps = 50;
+          const angleStep = angle / steps;
+          for (let i = 0; i < steps; i++) {
+            const angle1 = (currentAngle + i * angleStep - 90) * Math.PI / 180;
+            const angle2 = (currentAngle + (i + 1) * angleStep - 90) * Math.PI / 180;
+            doc.triangle(
+              pieX,
+              pieY,
+              pieX + pieRadius * Math.cos(angle1),
+              pieY + pieRadius * Math.sin(angle1),
+              pieX + pieRadius * Math.cos(angle2),
+              pieY + pieRadius * Math.sin(angle2),
+              "F"
+            );
+          }
+          currentAngle += angle;
+        };
+
+        drawPieSlice(cogsAngle);
+
+        // Draw OpEx slice (orange)
+        doc.setFillColor(251, 146, 60);
+        drawPieSlice(opexAngle);
+
+        // Draw Profit slice (green)
+        doc.setFillColor(16, 185, 129);
+        drawPieSlice(profitAngle);
+
+        // Legend
+        yPos += 65;
+
+        doc.setFillColor(239, 68, 68);
+        doc.rect(margin + 10, yPos, 5, 5, "F");
+        doc.setFontSize(8);
+        doc.setTextColor(31, 41, 55);
+        doc.setFont("helvetica", "normal");
+        doc.text(`COGS: ${((cogs / total) * 100).toFixed(0)}%`, margin + 18, yPos + 4);
+
+        yPos += 8;
+
+        doc.setFillColor(251, 146, 60);
+        doc.rect(margin + 10, yPos, 5, 5, "F");
+        doc.text(`Operating Expenses: ${((opex / total) * 100).toFixed(0)}%`, margin + 18, yPos + 4);
+
+        yPos += 8;
+
+        doc.setFillColor(16, 185, 129);
+        doc.rect(margin + 10, yPos, 5, 5, "F");
+        doc.text(`Net Profit: ${((profit / total) * 100).toFixed(0)}%`, margin + 18, yPos + 4);
+
+        yPos += 12;
+      }
+
+      // Monthly Projections Table (first 12 months)
+      if (yPos > pageHeight - 60 || results.monthlyProjections.length > 0) {
+        doc.addPage();
+        yPos = 20;
+
+        doc.setTextColor(31, 41, 55);
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.text("Monthly Financial Projections", margin, yPos);
+
+        yPos += 10;
+
+        // Table header
+        doc.setFillColor(249, 250, 251);
+        doc.rect(margin, yPos, contentWidth, 8, "F");
+        doc.setDrawColor(229, 231, 235);
+        doc.setLineWidth(0.3);
+        doc.rect(margin, yPos, contentWidth, 8, "S");
+
+        doc.setTextColor(75, 85, 99);
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "bold");
+        
+        const colWidth = contentWidth / 6;
+        doc.text("Month", margin + 2, yPos + 5);
+        doc.text("Revenue", margin + colWidth + 2, yPos + 5);
+        doc.text("Gross Profit", margin + colWidth * 2 + 2, yPos + 5);
+        doc.text("OpEx", margin + colWidth * 3 + 2, yPos + 5);
+        doc.text("Net Profit", margin + colWidth * 4 + 2, yPos + 5);
+        doc.text("Cumulative", margin + colWidth * 5 + 2, yPos + 5);
+
+        yPos += 8;
+
+        // Table rows (max 12 months)
+        const tableData = results.monthlyProjections.slice(0, 12);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+
+        tableData.forEach((row, index) => {
+          if (yPos > pageHeight - 20) {
+            doc.addPage();
+            yPos = 20;
+          }
+
+          const rowColor = index % 2 === 0 ? [255, 255, 255] : [249, 250, 251];
+          doc.setFillColor(rowColor[0], rowColor[1], rowColor[2]);
+          doc.rect(margin, yPos, contentWidth, 6, "F");
+
+          doc.setTextColor(31, 41, 55);
+          doc.text(`M${row.month}`, margin + 2, yPos + 4);
+          doc.text(`$${(row.revenue / 1000).toFixed(0)}K`, margin + colWidth + 2, yPos + 4);
+          doc.text(`$${(row.grossProfit / 1000).toFixed(0)}K`, margin + colWidth * 2 + 2, yPos + 4);
+          doc.text(`$${(row.operatingExpenses / 1000).toFixed(0)}K`, margin + colWidth * 3 + 2, yPos + 4);
+          doc.text(`$${(row.netProfit / 1000).toFixed(0)}K`, margin + colWidth * 4 + 2, yPos + 4);
+          doc.text(`$${(row.cumulativeProfit / 1000).toFixed(0)}K`, margin + colWidth * 5 + 2, yPos + 4);
+
+          yPos += 6;
+        });
+      }
+
+      // Footer
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.3);
+        doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
+
+        doc.setFontSize(8);
+        doc.setTextColor(107, 114, 128);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Page ${i} of ${pageCount}`, margin, pageHeight - 8);
+
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(59, 130, 246);
+        doc.text("Strategize+", pageWidth / 2, pageHeight - 8, { align: "center" });
+
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(107, 114, 128);
+        doc.text(
+          new Date().toLocaleDateString(),
+          pageWidth - margin,
+          pageHeight - 8,
+          { align: "right" }
+        );
+      }
+
+      const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      doc.save(`financial-model-analysis-${timestamp}.pdf`);
+      toast.success("PDF exported successfully!");
+    } catch (error) {
+      console.error("PDF export error:", error);
+      toast.error("Failed to export PDF. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -298,11 +751,31 @@ const FinancialModelerEnhanced: React.FC<FinancialModelerProps> = ({
             </div>
           )}
         </div>
-        {lastSaved && (
-          <div className="text-xs sm:text-sm text-muted-foreground">
-            Last saved: {new Date(lastSaved).toLocaleString()}
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {lastSaved && (
+            <div className="text-xs sm:text-sm text-muted-foreground">
+              Last saved: {new Date(lastSaved).toLocaleString()}
+            </div>
+          )}
+          <Button
+            onClick={exportToPDF}
+            disabled={isExporting}
+            variant="outline"
+            size="sm"
+          >
+            {isExporting ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <FileText className="h-4 w-4 mr-2 text-red-600" />
+                Export PDF
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       <Tabs

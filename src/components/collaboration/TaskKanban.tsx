@@ -1,20 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
-import { Plus, MoreHorizontal } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Plus, MoreHorizontal } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { Task, User as UserType } from "@/types";
+import { useAuth } from "@/contexts/AuthContext";
+import { userApi } from "@/lib/api";
 
 interface TaskKanbanProps {
   projectId: string;
   compact?: boolean;
-}
-import { Task, User as UserType } from '@/types';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
-
-interface TaskKanbanProps {
-  projectId: string;
 }
 
 export const TaskKanban: React.FC<TaskKanbanProps> = ({ projectId }) => {
@@ -24,11 +20,11 @@ export const TaskKanban: React.FC<TaskKanbanProps> = ({ projectId }) => {
   const [loading, setLoading] = useState(false);
   const [showCreateTask, setShowCreateTask] = useState(false);
   const [newTask, setNewTask] = useState({
-    title: '',
-    description: '',
-    assigned_to: '',
-    due_date: '',
-    priority: 'medium' as 'low' | 'medium' | 'high'
+    title: "",
+    description: "",
+    assigned_to: "",
+    due_date: "",
+    priority: "medium" as "low" | "medium" | "high",
   });
 
   useEffect(() => {
@@ -41,33 +37,29 @@ export const TaskKanban: React.FC<TaskKanbanProps> = ({ projectId }) => {
   const loadTasks = async () => {
     try {
       const { data, error } = await supabase
-        .from('tasks')
-        .select(`
+        .from("tasks")
+        .select(
+          `
           *,
           assignee:assigned_to(name, avatar_url)
-        `)
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
+        `
+        )
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       setTasks(data || []);
     } catch (error) {
-      console.error('Error loading tasks:', error);
+      console.error("Error loading tasks:", error);
     }
   };
 
   const loadProjectMembers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('project_collaborators')
-        .select('user:users(*)')
-        .eq('project_id', projectId);
-
-      if (error) throw error;
-      const members = data?.map(item => item.user).filter(Boolean) || [];
+      const members = await userApi.getProjectTeamMembers(projectId);
       setProjectMembers(members);
     } catch (error) {
-      console.error('Error loading project members:', error);
+      console.error("Error loading project members:", error);
     }
   };
 
@@ -77,60 +69,86 @@ export const TaskKanban: React.FC<TaskKanbanProps> = ({ projectId }) => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('tasks')
-        .insert([{
-          ...newTask,
-          project_id: projectId,
-          created_by: user.id,
-          status: 'todo'
-        }])
-        .select(`
+        .from("tasks")
+        .insert([
+          {
+            ...newTask,
+            project_id: projectId,
+            created_by: user.id,
+            status: "todo",
+          },
+        ])
+        .select(
+          `
           *,
           assignee:assigned_to(name, avatar_url)
-        `)
+        `
+        )
         .single();
 
       if (error) throw error;
-      
+
       setTasks([data, ...tasks]);
-      setNewTask({ title: '', description: '', assigned_to: '', due_date: '', priority: 'medium' });
+      setNewTask({
+        title: "",
+        description: "",
+        assigned_to: "",
+        due_date: "",
+        priority: "medium",
+      });
       setShowCreateTask(false);
     } catch (error) {
-      console.error('Error creating task:', error);
+      console.error("Error creating task:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const updateTaskStatus = async (taskId: string, status: Task['status']) => {
+  const updateTaskStatus = async (taskId: string, status: Task["status"]) => {
     try {
       const { error } = await supabase
-        .from('tasks')
+        .from("tasks")
         .update({ status, updated_at: new Date().toISOString() })
-        .eq('id', taskId);
+        .eq("id", taskId);
 
       if (error) throw error;
-      
-      setTasks(tasks.map(task => 
-        task.id === taskId ? { ...task, status } : task
-      ));
+
+      setTasks(
+        tasks.map((task) => (task.id === taskId ? { ...task, status } : task))
+      );
     } catch (error) {
-      console.error('Error updating task status:', error);
+      console.error("Error updating task status:", error);
     }
   };
 
   const columns = [
-    { id: 'todo', title: 'To Do', tasks: tasks.filter(t => t.status === 'todo') },
-    { id: 'in-progress', title: 'In Progress', tasks: tasks.filter(t => t.status === 'in-progress') },
-    { id: 'done', title: 'Done', tasks: tasks.filter(t => t.status === 'done') }
+    {
+      id: "todo",
+      title: "To Do",
+      tasks: tasks.filter((t) => t.status === "todo"),
+    },
+    {
+      id: "in-progress",
+      title: "In Progress",
+      tasks: tasks.filter((t) => t.status === "in-progress"),
+    },
+    {
+      id: "done",
+      title: "Done",
+      tasks: tasks.filter((t) => t.status === "done"),
+    },
   ];
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'bg-red-100 text-red-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "high":
+        return "bg-red-100 text-red-800";
+      case "medium":
+        return "bg-yellow-100 text-yellow-800";
+      case "low":
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -153,19 +171,28 @@ export const TaskKanban: React.FC<TaskKanbanProps> = ({ projectId }) => {
               <Input
                 placeholder="Task title"
                 value={newTask.title}
-                onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                onChange={(e) =>
+                  setNewTask({ ...newTask, title: e.target.value })
+                }
               />
               <Textarea
                 placeholder="Task description"
                 value={newTask.description}
-                onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                onChange={(e) =>
+                  setNewTask({ ...newTask, description: e.target.value })
+                }
               />
-              <Select value={newTask.assigned_to} onValueChange={(value) => setNewTask({ ...newTask, assigned_to: value })}>
+              <Select
+                value={newTask.assigned_to}
+                onValueChange={(value) =>
+                  setNewTask({ ...newTask, assigned_to: value })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Assign to..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {projectMembers.map(member => (
+                  {projectMembers.map((member) => (
                     <SelectItem key={member.id} value={member.id}>
                       {member.name}
                     </SelectItem>
@@ -175,9 +202,16 @@ export const TaskKanban: React.FC<TaskKanbanProps> = ({ projectId }) => {
               <Input
                 type="date"
                 value={newTask.due_date}
-                onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
+                onChange={(e) =>
+                  setNewTask({ ...newTask, due_date: e.target.value })
+                }
               />
-              <Select value={newTask.priority} onValueChange={(value: 'low' | 'medium' | 'high') => setNewTask({ ...newTask, priority: value })}>
+              <Select
+                value={newTask.priority}
+                onValueChange={(value: "low" | "medium" | "high") =>
+                  setNewTask({ ...newTask, priority: value })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -191,7 +225,10 @@ export const TaskKanban: React.FC<TaskKanbanProps> = ({ projectId }) => {
                 <Button onClick={createTask} disabled={loading}>
                   Create Task
                 </Button>
-                <Button variant="outline" onClick={() => setShowCreateTask(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCreateTask(false)}
+                >
                   Cancel
                 </Button>
               </div>
@@ -201,7 +238,7 @@ export const TaskKanban: React.FC<TaskKanbanProps> = ({ projectId }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {columns.map(column => (
+        {columns.map((column) => (
           <Card key={column.id}>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -210,17 +247,23 @@ export const TaskKanban: React.FC<TaskKanbanProps> = ({ projectId }) => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {column.tasks.map(task => (
+              {column.tasks.map((task) => (
                 <Card key={task.id} className="p-3">
                   <div className="space-y-2">
                     <div className="flex items-start justify-between">
                       <h4 className="font-medium text-sm">{task.title}</h4>
-                      <Badge className={`text-xs ${getPriorityColor(task.priority || 'medium')}`}>
+                      <Badge
+                        className={`text-xs ${getPriorityColor(
+                          task.priority || "medium"
+                        )}`}
+                      >
                         {task.priority}
                       </Badge>
                     </div>
                     {task.description && (
-                      <p className="text-xs text-gray-600">{task.description}</p>
+                      <p className="text-xs text-gray-600">
+                        {task.description}
+                      </p>
                     )}
                     <div className="flex items-center justify-between">
                       {task.assignee && (
@@ -242,21 +285,35 @@ export const TaskKanban: React.FC<TaskKanbanProps> = ({ projectId }) => {
                       )}
                     </div>
                     <div className="flex gap-1">
-                      {task.status !== 'todo' && (
-                        <Button size="sm" variant="outline" className="text-xs h-6" 
-                          onClick={() => updateTaskStatus(task.id, 'todo')}>
+                      {task.status !== "todo" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-6"
+                          onClick={() => updateTaskStatus(task.id, "todo")}
+                        >
                           To Do
                         </Button>
                       )}
-                      {task.status !== 'in-progress' && (
-                        <Button size="sm" variant="outline" className="text-xs h-6"
-                          onClick={() => updateTaskStatus(task.id, 'in-progress')}>
+                      {task.status !== "in-progress" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-6"
+                          onClick={() =>
+                            updateTaskStatus(task.id, "in-progress")
+                          }
+                        >
                           In Progress
                         </Button>
                       )}
-                      {task.status !== 'done' && (
-                        <Button size="sm" variant="outline" className="text-xs h-6"
-                          onClick={() => updateTaskStatus(task.id, 'done')}>
+                      {task.status !== "done" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-6"
+                          onClick={() => updateTaskStatus(task.id, "done")}
+                        >
                           Done
                         </Button>
                       )}

@@ -3,6 +3,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Download, Save, FileText, FileSpreadsheet, FileJson, Loader2 } from 'lucide-react';
+import { toast as sonnerToast } from 'sonner';
+import { generateGTMPDF } from './gtm-pdf-export-new';
 import { useToast } from '@/hooks/use-toast';
 import { ProductRoadmap } from './gtm/ProductRoadmap';
 import { CustomerPainPoints } from './gtm/CustomerPainPoints';
@@ -30,6 +32,7 @@ interface GTMPlannerProps {
 
 export const GTMPlanner: React.FC<GTMPlannerProps> = ({ projectId }) => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [isExporting, setIsExporting] = useState(false);
   const dispatch = useAppDispatch();
   const gtmPlanner = useAppSelector(selectGTMPlanner);
   const { toast } = useToast();
@@ -136,7 +139,34 @@ export const GTMPlanner: React.FC<GTMPlannerProps> = ({ projectId }) => {
     }
   };
 
+  const exportToPDF = async () => {
+    if (!gtmPlanner.productRoadmap.businessName) {
+      sonnerToast.error("Please fill in GTM plan data before exporting!");
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      const doc = generateGTMPDF(gtmPlanner, sonnerToast);
+      
+      const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      doc.save(`gtm-strategy-${timestamp}.pdf`);
+      sonnerToast.success("PDF exported successfully!");
+    } catch (error) {
+      console.error("PDF export error:", error);
+      sonnerToast.error("Failed to export PDF. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleExport = (format: string) => {
+    if (format === 'pdf') {
+      exportToPDF();
+      return;
+    }
+
     try {
       const exportData = {
         ...gtmPlanner,
@@ -191,6 +221,10 @@ export const GTMPlanner: React.FC<GTMPlannerProps> = ({ projectId }) => {
           <Button onClick={handleSave} variant="outline" disabled={gtmPlanner.saving}>
             {gtmPlanner.saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
             Save
+          </Button>
+          <Button onClick={exportToPDF} variant="outline" disabled={isExporting}>
+            {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2 text-red-600" />}
+            {isExporting ? "Exporting..." : "Export PDF"}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS public.organizations (
   CONSTRAINT organizations_pkey PRIMARY KEY (id)
 );
 
+-- do not use organization members table anymore
 -- useless (looks like) Organization members table
 CREATE TABLE IF NOT EXISTS public.org_members (
   org_id uuid NOT NULL,

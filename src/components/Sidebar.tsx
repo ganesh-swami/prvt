@@ -72,6 +72,12 @@ const menuItems: MenuItem[] = [
     category: "overview",
   },
   {
+    icon: FileText,
+    label: "Projects",
+    id: "projects",
+    category: "overview",
+  },
+  {
     icon: Target,
     label: "Plan Builder",
     id: "plan-builder",
@@ -119,14 +125,14 @@ const menuItems: MenuItem[] = [
     id: "financial",
     category: "financial",
   },
-  {
-    icon: TrendingUp,
-    label: "Analyst Model",
-    id: "analyst",
-    beta: true,
-    to: "/analyst",
-    category: "financial",
-  },
+  // {
+  //   icon: TrendingUp,
+  //   label: "Analyst Model",
+  //   id: "analyst",
+  //   beta: true,
+  //   to: "/analyst",
+  //   category: "financial",
+  // },
   { icon: UsersIcon, label: "GTM Planner", id: "gtm", category: "growth" },
   {
     icon: Zap,
@@ -158,37 +164,32 @@ const menuItems: MenuItem[] = [
     id: "team-collaboration",
     category: "collaboration",
   },
-  {
-    icon: FileText,
-    label: "Drafts and Plans",
-    id: "drafts-and-plans",
-    category: "collaboration",
-  },
-  {
-    icon: FileText,
-    label: "Projects",
-    id: "projects",
-    category: "collaboration",
-  },
-  { icon: Package, label: "Templates", id: "templates", category: "resources" },
+  // {
+  //   icon: FileText,
+  //   label: "Drafts and Plans",
+  //   id: "drafts-and-plans",
+  //   category: "collaboration",
+  // },
+
+  // { icon: Package, label: "Templates", id: "templates", category: "resources" },
   {
     icon: CreditCard,
     label: "Pricing",
     id: "pricing-module",
     category: "resources",
   },
-  {
-    icon: Activity,
-    label: "Admin Analytics",
-    id: "admin-analytics",
-    category: "admin",
-  },
-  {
-    icon: PieChart,
-    label: "Org Analytics",
-    id: "org-analytics",
-    category: "admin",
-  },
+  // {
+  //   icon: Activity,
+  //   label: "Admin Analytics",
+  //   id: "admin-analytics",
+  //   category: "admin",
+  // },
+  // {
+  //   icon: PieChart,
+  //   label: "Org Analytics",
+  //   id: "org-analytics",
+  //   category: "admin",
+  // },
 ];
 
 const categoryLabels = {
@@ -200,7 +201,7 @@ const categoryLabels = {
   compliance: "Risk & Compliance",
   collaboration: "Team & Collaboration",
   resources: "Resources",
-  admin: "Administration",
+  // admin: "Administration",
 };
 
 // Project Selector Component
@@ -438,7 +439,7 @@ export const Sidebar: React.FC = () => {
                 })}
               </div>
             )}
-            {sidebarOpen && category !== "admin" && (
+            {sidebarOpen && category !== "resources" && (
               <Separator className="mt-3" />
             )}
           </div>

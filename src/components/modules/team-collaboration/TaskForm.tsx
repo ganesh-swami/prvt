@@ -4,7 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { X, Loader2 } from "lucide-react";
 
 interface Collaborator {
@@ -28,7 +34,14 @@ interface TaskFormProps {
   saving: boolean;
 }
 
-export function TaskForm({ newTask, collaborators, onTaskChange, onSubmit, onCancel, saving }: TaskFormProps) {
+export function TaskForm({
+  newTask,
+  collaborators,
+  onTaskChange,
+  onSubmit,
+  onCancel,
+  saving,
+}: TaskFormProps) {
   return (
     <Card>
       <CardHeader>
@@ -44,7 +57,9 @@ export function TaskForm({ newTask, collaborators, onTaskChange, onSubmit, onCan
           <Label className="text-left block mb-1.5">Title *</Label>
           <Input
             value={newTask.title}
-            onChange={(e) => onTaskChange({ ...newTask, title: e.target.value })}
+            onChange={(e) =>
+              onTaskChange({ ...newTask, title: e.target.value })
+            }
             placeholder="Task title"
           />
         </div>
@@ -52,7 +67,9 @@ export function TaskForm({ newTask, collaborators, onTaskChange, onSubmit, onCan
           <Label className="text-left block mb-1.5">Description</Label>
           <Textarea
             value={newTask.description}
-            onChange={(e) => onTaskChange({ ...newTask, description: e.target.value })}
+            onChange={(e) =>
+              onTaskChange({ ...newTask, description: e.target.value })
+            }
             placeholder="Task description"
             rows={3}
           />
@@ -61,7 +78,9 @@ export function TaskForm({ newTask, collaborators, onTaskChange, onSubmit, onCan
           <Label className="text-left block mb-1.5">Assigned To *</Label>
           <Select
             value={newTask.assigned_to}
-            onValueChange={(value) => onTaskChange({ ...newTask, assigned_to: value })}
+            onValueChange={(value) =>
+              onTaskChange({ ...newTask, assigned_to: value })
+            }
           >
             <SelectTrigger>
               <SelectValue placeholder="Select assignee" />
@@ -69,7 +88,7 @@ export function TaskForm({ newTask, collaborators, onTaskChange, onSubmit, onCan
             <SelectContent>
               {collaborators.map((collab) => (
                 <SelectItem key={collab.id} value={collab.id}>
-                  {collab.name} {collab.email && `(${collab.email})`}
+                  {collab.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -80,7 +99,9 @@ export function TaskForm({ newTask, collaborators, onTaskChange, onSubmit, onCan
             <Label className="text-left block mb-1.5">Priority</Label>
             <Select
               value={newTask.priority}
-              onValueChange={(value) => onTaskChange({ ...newTask, priority: value as any })}
+              onValueChange={(value) =>
+                onTaskChange({ ...newTask, priority: value as any })
+              }
             >
               <SelectTrigger>
                 <SelectValue />
@@ -97,7 +118,9 @@ export function TaskForm({ newTask, collaborators, onTaskChange, onSubmit, onCan
             <Input
               type="date"
               value={newTask.due_date}
-              onChange={(e) => onTaskChange({ ...newTask, due_date: e.target.value })}
+              onChange={(e) =>
+                onTaskChange({ ...newTask, due_date: e.target.value })
+              }
             />
           </div>
         </div>
