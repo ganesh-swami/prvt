@@ -14,13 +14,20 @@ import { exportEnhancedFinancialModel } from "../../utils/financialModelExport";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { Label } from "../ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 import { ModuleSummaries } from "./ModuleSummaries";
 import { useModuleSummaries } from "../../hooks/useModuleSummaries";
 import { exportToPDFWithCharts } from "../../utils/enhancedExportUtils";
 import { exportToPowerPoint } from "../../utils/powerpointExport";
 import { generatePitchDeck } from "../../utils/pitchDeckExport";
 import { exportFinancialModel } from "../../utils/financialModelExport";
+import { generateComprehensiveModulePDF } from "../../utils/comprehensiveModulePDFExport";
 import {
   FileText,
   Download,
@@ -59,7 +66,6 @@ import {
 } from "@/store/slices/investorRoomSlice";
 import { Milestone } from "@/types";
 import { useEffect } from "react";
-
 
 interface CapTableEntry {
   id: string;
@@ -173,8 +179,14 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
           progress: newMilestone.progress,
         })
       ).unwrap();
-      
-      setNewMilestone({ title: "", description: "", target_date: "", status: "pending", progress: 0 });
+
+      setNewMilestone({
+        title: "",
+        description: "",
+        target_date: "",
+        status: "pending",
+        progress: 0,
+      });
       toast({
         title: "Success",
         description: "Milestone created successfully",
@@ -208,7 +220,7 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
           updates: editForm,
         })
       ).unwrap();
-      
+
       setEditingId(null);
       setEditForm({});
       toast({
@@ -242,18 +254,44 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
     }
   };
 
-  const handleExportToPDF = () => {
-    const exportData = {
-      metrics: {
-        revenue: monthlyRevenue,
-        users: activeUsers,
-        burnRate: burnRate,
-      },
-      capTable,
-      milestones,
-      moduleSummaries: summaries,
-    };
-    exportToPDFWithCharts(exportData, summaries, "Investor Report");
+  const handleExportToPDF = async () => {
+    if (!projectId) {
+      toast({
+        title: "Error",
+        description: "No project ID available",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Import store to get state
+      const { store } = await import("@/store");
+      
+      const doc = await generateComprehensiveModulePDF(
+        dispatch,
+        store.getState,
+        {
+          projectId,
+          projectName: "Comprehensive Business Report",
+        }
+      );
+
+      const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      doc.save(`comprehensive-report-${timestamp}.pdf`);
+
+      toast({
+        title: "Success",
+        description: "Comprehensive PDF exported successfully!",
+      });
+    } catch (error) {
+      console.error("PDF export error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to export PDF",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleExportToPowerPoint = () => {
@@ -449,19 +487,28 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
                       // Edit mode
                       <div className="space-y-3">
                         <div>
-                          <Label htmlFor="edit-title" className="text-left block mb-1.5">
+                          <Label
+                            htmlFor="edit-title"
+                            className="text-left block mb-1.5"
+                          >
                             Title
                           </Label>
                           <Input
                             id="edit-title"
                             value={editForm.title || ""}
                             onChange={(e) =>
-                              setEditForm({ ...editForm, title: e.target.value })
+                              setEditForm({
+                                ...editForm,
+                                title: e.target.value,
+                              })
                             }
                           />
                         </div>
                         <div>
-                          <Label htmlFor="edit-description" className="text-left block mb-1.5">
+                          <Label
+                            htmlFor="edit-description"
+                            className="text-left block mb-1.5"
+                          >
                             Description
                           </Label>
                           <Textarea
@@ -477,7 +524,10 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div>
-                            <Label htmlFor="edit-date" className="text-left block mb-1.5">
+                            <Label
+                              htmlFor="edit-date"
+                              className="text-left block mb-1.5"
+                            >
                               Target Date
                             </Label>
                             <Input
@@ -493,33 +543,45 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
                               onChange={(e) =>
                                 setEditForm({
                                   ...editForm,
-                                  target_date: new Date(e.target.value).toISOString(),
+                                  target_date: new Date(
+                                    e.target.value
+                                  ).toISOString(),
                                 })
                               }
                             />
                           </div>
                           <div>
-                            <Label htmlFor="edit-status" className="text-left block mb-1.5">
+                            <Label
+                              htmlFor="edit-status"
+                              className="text-left block mb-1.5"
+                            >
                               Status
                             </Label>
                             <Select
                               value={editForm.status}
-                              onValueChange={(value: "pending" | "in-progress" | "completed") =>
-                                setEditForm({ ...editForm, status: value })
-                              }
+                              onValueChange={(
+                                value: "pending" | "in-progress" | "completed"
+                              ) => setEditForm({ ...editForm, status: value })}
                             >
                               <SelectTrigger id="edit-status">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="pending">Pending</SelectItem>
-                                <SelectItem value="in-progress">In Progress</SelectItem>
-                                <SelectItem value="completed">Completed</SelectItem>
+                                <SelectItem value="in-progress">
+                                  In Progress
+                                </SelectItem>
+                                <SelectItem value="completed">
+                                  Completed
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
                           <div>
-                            <Label htmlFor="edit-progress" className="text-left block mb-1.5">
+                            <Label
+                              htmlFor="edit-progress"
+                              className="text-left block mb-1.5"
+                            >
                               Progress (%)
                             </Label>
                             <Input
@@ -531,7 +593,10 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
                               onChange={(e) =>
                                 setEditForm({
                                   ...editForm,
-                                  progress: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)),
+                                  progress: Math.min(
+                                    100,
+                                    Math.max(0, parseInt(e.target.value) || 0)
+                                  ),
                                 })
                               }
                             />
@@ -567,7 +632,9 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <h3 className="font-medium text-lg">{milestone.title}</h3>
+                              <h3 className="font-medium text-lg">
+                                {milestone.title}
+                              </h3>
                               <Badge
                                 variant={
                                   milestone.status === "completed"
@@ -588,7 +655,9 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
                             <div className="flex items-center gap-2 text-sm text-gray-500">
                               <Calendar className="w-4 h-4" />
                               <span>
-                                {new Date(milestone.target_date).toLocaleDateString()}
+                                {new Date(
+                                  milestone.target_date
+                                ).toLocaleDateString()}
                               </span>
                             </div>
                           </div>
@@ -613,9 +682,14 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
                         <div className="space-y-1">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-gray-600">Progress</span>
-                            <span className="font-medium">{milestone.progress}%</span>
+                            <span className="font-medium">
+                              {milestone.progress}%
+                            </span>
                           </div>
-                          <Progress value={milestone.progress} className="w-full" />
+                          <Progress
+                            value={milestone.progress}
+                            className="w-full"
+                          />
                         </div>
                       </>
                     )}
@@ -634,12 +708,18 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
                     placeholder="e.g., Launch Beta Version"
                     value={newMilestone.title}
                     onChange={(e) =>
-                      setNewMilestone({ ...newMilestone, title: e.target.value })
+                      setNewMilestone({
+                        ...newMilestone,
+                        title: e.target.value,
+                      })
                     }
                   />
                 </div>
                 <div>
-                  <Label htmlFor="new-description" className="text-left block mb-1.5">
+                  <Label
+                    htmlFor="new-description"
+                    className="text-left block mb-1.5"
+                  >
                     Description
                   </Label>
                   <Textarea

@@ -1,16 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu";
-import { FileDown, Image, FileText, Loader2 } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
 interface CanvasData {
@@ -312,214 +303,6 @@ export const VisualCanvasExportImproved: React.FC<
     }
   };
 
-  const switchToVisualTab = (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const tabTriggers = document.querySelectorAll('[role="tab"]');
-      let visualTabTrigger: HTMLElement | null = null;
-
-      tabTriggers.forEach((trigger) => {
-        const triggerElement = trigger as HTMLElement;
-        if (triggerElement.textContent?.includes("Visual Canvas")) {
-          visualTabTrigger = triggerElement;
-        }
-      });
-
-      if (visualTabTrigger) {
-        const isActive =
-          visualTabTrigger.getAttribute("data-state") === "active";
-
-        if (!isActive) {
-          toast.info("Switching to Visual Canvas tab...");
-          visualTabTrigger.click();
-
-          // Wait for tab content to render
-          setTimeout(() => {
-            resolve(true);
-          }, 1000);
-        } else {
-          resolve(true);
-        }
-      } else {
-        resolve(false);
-      }
-    });
-  };
-
-  const captureVisualCanvas = async (): Promise<HTMLCanvasElement | null> => {
-    // Try to switch to visual tab
-    const switched = await switchToVisualTab();
-
-    if (!switched) {
-      toast.warning("Could not switch to Visual Canvas tab automatically.");
-    }
-
-    // Wait a bit more for rendering
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const element = document.getElementById("visual-canvas-export");
-    if (!element) {
-      toast.error("Visual canvas not found. Creating PDF from data instead...");
-      return null;
-    }
-
-    try {
-      const canvas = await html2canvas(element, {
-        backgroundColor: "#ffffff",
-        scale: 2,
-        logging: false,
-        useCORS: true,
-        allowTaint: true,
-        imageTimeout: 15000,
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight,
-        onclone: (clonedDoc) => {
-          const clonedElement = clonedDoc.getElementById(
-            "visual-canvas-export"
-          );
-          if (clonedElement) {
-            clonedElement.style.maxHeight = "none";
-            clonedElement.style.overflow = "visible";
-          }
-        },
-      });
-
-      return canvas;
-    } catch (error) {
-      console.error("Error capturing canvas:", error);
-      throw error;
-    }
-  };
-
-  const exportToPNG = async () => {
-    setIsExporting(true);
-    setExportingFormat("PNG");
-
-    try {
-      const canvas = await captureVisualCanvas();
-      if (!canvas) {
-        setIsExporting(false);
-        setExportingFormat(null);
-        return;
-      }
-
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            const timestamp = new Date()
-              .toISOString()
-              .slice(0, 10)
-              .replace(/-/g, "");
-            link.download = `social-canvas-visual-${timestamp}.png`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            toast.success("Visual canvas exported as PNG successfully!");
-          }
-        },
-        "image/png",
-        1.0
-      );
-    } catch (error) {
-      console.error("PNG export error:", error);
-      toast.error("Failed to export PNG. Please try again.");
-    } finally {
-      setIsExporting(false);
-      setExportingFormat(null);
-    }
-  };
-
-  const exportToJPG = async () => {
-    setIsExporting(true);
-    setExportingFormat("JPG");
-
-    try {
-      const canvas = await captureVisualCanvas();
-      if (!canvas) {
-        setIsExporting(false);
-        setExportingFormat(null);
-        return;
-      }
-
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            const timestamp = new Date()
-              .toISOString()
-              .slice(0, 10)
-              .replace(/-/g, "");
-            link.download = `social-canvas-visual-${timestamp}.jpg`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            toast.success("Visual canvas exported as JPG successfully!");
-          }
-        },
-        "image/jpeg",
-        0.95
-      );
-    } catch (error) {
-      console.error("JPG export error:", error);
-      toast.error("Failed to export JPG. Please try again.");
-    } finally {
-      setIsExporting(false);
-      setExportingFormat(null);
-    }
-  };
-
-  const exportToJSON = () => {
-    setIsExporting(true);
-    setExportingFormat("JSON");
-
-    try {
-      const exportData = {
-        meta: {
-          projectName,
-          exportedAt: new Date().toISOString(),
-          exportDate: new Date().toLocaleDateString(),
-          canvasType: "Social Business Model Canvas",
-          version: "1.0",
-        },
-        groups: fieldGroups.map((group) => ({
-          title: group.title,
-          fields: group.fields.reduce((acc, field) => {
-            acc[field.key] = {
-              label: field.label,
-              value: canvasData[field.key as keyof CanvasData] || "",
-            };
-            return acc;
-          }, {} as Record<string, { label: string; value: string }>),
-        })),
-      };
-
-      const jsonString = JSON.stringify(exportData, null, 2);
-      const blob = new Blob([jsonString], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-      link.download = `social-business-canvas-${timestamp}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      toast.success("JSON exported successfully!");
-    } catch (error) {
-      console.error("JSON export error:", error);
-      toast.error("Failed to export JSON. Please try again.");
-    } finally {
-      setIsExporting(false);
-      setExportingFormat(null);
-    }
-  };
-
   const sanitizeFilename = (name: string): string => {
     return name
       .replace(/[^a-z0-9]/gi, "-")
@@ -529,87 +312,23 @@ export const VisualCanvasExportImproved: React.FC<
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" disabled={isExporting}>
-          {isExporting ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Exporting {exportingFormat}...
-            </>
-          ) : (
-            <>
-              <FileDown className="h-4 w-4 mr-2" />
-              Export
-            </>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72">
-        {/* <DropdownMenuLabel className="text-sm font-semibold">
-          Export
-        </DropdownMenuLabel> */}
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem
-          onClick={exportToPDFFromData}
-          disabled={isExporting}
-          className="cursor-pointer"
-        >
-          <FileText className="h-4 w-4 mr-3 text-red-600" />
-          <div className="flex flex-col">
-            <span className="font-medium">Export as PDF</span>
-            <span className="text-xs text-gray-500">
-              Professional document (recommended)
-            </span>
-          </div>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem
-          onClick={exportToPNG}
-          disabled={isExporting}
-          className="cursor-pointer"
-        >
-          <Image className="h-4 w-4 mr-3 text-blue-600" />
-          <div className="flex flex-col">
-            <span className="font-medium">Export as PNG</span>
-            <span className="text-xs text-gray-500">
-              High-quality visual screenshot
-            </span>
-          </div>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem
-          onClick={exportToJPG}
-          disabled={isExporting}
-          className="cursor-pointer"
-        >
-          <Image className="h-4 w-4 mr-3 text-orange-600" />
-          <div className="flex flex-col">
-            <span className="font-medium">Export as JPG</span>
-            <span className="text-xs text-gray-500">
-              Compressed image format
-            </span>
-          </div>
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem
-          onClick={exportToJSON}
-          disabled={isExporting}
-          className="cursor-pointer"
-        >
-          <FileText className="h-4 w-4 mr-3 text-purple-600" />
-          <div className="flex flex-col">
-            <span className="font-medium">Export as JSON</span>
-            <span className="text-xs text-gray-500">
-              Structured data with field IDs
-            </span>
-          </div>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button 
+      variant="outline" 
+      size="sm" 
+      disabled={isExporting}
+      onClick={exportToPDFFromData}
+    >
+      {isExporting ? (
+        <>
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          Exporting PDF...
+        </>
+      ) : (
+        <>
+          <FileText className="h-4 w-4 mr-2 text-red-600" />
+          Export PDF
+        </>
+      )}
+    </Button>
   );
 };

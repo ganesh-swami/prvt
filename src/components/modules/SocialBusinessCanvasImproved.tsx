@@ -404,7 +404,11 @@ const SocialBusinessCanvasImproved: React.FC<SocialBusinessCanvasProps> = ({
       </div>
 
       {/* Main Tabs */}
-      <Tabs defaultValue="builder" className="w-full" id="social-canvas-container">
+      <Tabs
+        defaultValue="builder"
+        className="w-full"
+        id="social-canvas-container"
+      >
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="builder" className="flex items-center gap-2">
             <Lightbulb className="h-4 w-4" />
@@ -421,7 +425,11 @@ const SocialBusinessCanvasImproved: React.FC<SocialBusinessCanvasProps> = ({
         </TabsList>
 
         {/* Tab 1: Canvas Builder with Grouped Sections */}
-        <TabsContent value="builder" className="mt-6" id="social-canvas-builder">
+        <TabsContent
+          value="builder"
+          className="mt-6"
+          id="social-canvas-builder"
+        >
           <div className="space-y-4">
             <Accordion
               type="multiple"

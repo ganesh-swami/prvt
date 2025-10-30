@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { CustomTooltip } from "@/components/common/CustomTooltip";
 import { allPlanSections } from "./PlanBuilderSectionsComplete";
+import { PlanBuilderPDFExport } from "./PlanBuilderPDFExport";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchPlanBuilder,
@@ -174,6 +175,11 @@ const PlanBuilderEnhanced: React.FC<PlanBuilderEnhancedProps> = ({ projectId: pr
               </>
             )}
           </Button>
+          <PlanBuilderPDFExport
+            sections={sections}
+            planData={planData}
+            projectName="Business Plan"
+          />
         </div>
       </div>
 
