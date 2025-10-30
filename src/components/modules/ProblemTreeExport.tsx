@@ -1,12 +1,5 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { FileDown, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -67,39 +60,9 @@ export const ProblemTreeExport: React.FC<ProblemTreeExportProps> = ({
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" disabled={isExporting}>
-          {isExporting ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Exporting {exportingFormat}...
-            </>
-          ) : (
-            <>
-              <FileDown className="h-4 w-4 mr-2" />
-              Export
-            </>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72">
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem
-          onClick={exportToPDFFromData}
-          disabled={isExporting}
-          className="cursor-pointer"
-        >
-          <FileText className="h-4 w-4 mr-3 text-red-600" />
-          <div className="flex flex-col">
-            <span className="font-medium">Export as PDF</span>
-            <span className="text-xs text-gray-500">
-              Professional document (recommended)
-            </span>
-          </div>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button onClick={exportToPDFFromData} variant="outline">
+      <FileText className="w-4 h-4 mr-2" />
+      Export PDF
+    </Button>
   );
 };

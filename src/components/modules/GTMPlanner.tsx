@@ -4,7 +4,13 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Download, Save, FileText, FileSpreadsheet, FileJson, Loader2 } from 'lucide-react';
 import { toast as sonnerToast } from 'sonner';
-import { generateGTMPDF } from './gtm-pdf-export-new';
+import {
+  createPDFInstance,
+  addTitlePage,
+  addFooterToAllPages,
+  downloadPDF,
+} from '@/utils/pdfUtils';
+import { addGTMPlannerContent } from '@/utils/modulePDFExports';
 import { useToast } from '@/hooks/use-toast';
 import { ProductRoadmap } from './gtm/ProductRoadmap';
 import { CustomerPainPoints } from './gtm/CustomerPainPoints';
@@ -148,10 +154,17 @@ export const GTMPlanner: React.FC<GTMPlannerProps> = ({ projectId }) => {
     setIsExporting(true);
 
     try {
-      const doc = generateGTMPDF(gtmPlanner, sonnerToast);
-      
-      const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-      doc.save(`gtm-strategy-${timestamp}.pdf`);
+      // Create PDF using shared utilities
+      let doc = createPDFInstance();
+      doc = addTitlePage(
+        doc,
+        "Go-To-Market Strategy",
+        `${gtmPlanner.productRoadmap.businessName}`,
+        [13, 148, 136] // Teal color
+      );
+      doc = addGTMPlannerContent(doc, gtmPlanner, false);
+      doc = addFooterToAllPages(doc, "GTM Strategy");
+      downloadPDF(doc, "gtm-strategy");
       sonnerToast.success("PDF exported successfully!");
     } catch (error) {
       console.error("PDF export error:", error);

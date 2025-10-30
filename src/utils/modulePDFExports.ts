@@ -2130,3 +2130,6 @@ export const addEcosystemMappingContent = (
 
   return doc;
 };
+
+// Export GTM Planner content from separate file (too large for this file)
+export { addGTMPlannerContent } from "./gtmPDFContent";
