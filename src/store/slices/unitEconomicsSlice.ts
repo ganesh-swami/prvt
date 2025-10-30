@@ -17,6 +17,7 @@ export interface UnitEconomicsMetrics {
 
 export interface UnitEconomicsResults {
   ltv: number;
+  cac: number;
   ltvCacRatio: number;
   paybackPeriod: number;
   arr: number;
@@ -58,6 +59,7 @@ const initialState: UnitEconomicsState = {
   },
   results: {
     ltv: 0,
+    cac: 0,
     ltvCacRatio: 0,
     paybackPeriod: 0,
     arr: 0,

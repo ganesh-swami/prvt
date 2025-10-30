@@ -35,10 +35,12 @@ export interface Results {
   grossProfit: number;
   grossMargin: number;
   totalOperatingExpenses: number;
+  operatingExpenses: number;
   ebitda: number;
   totalTaxes: number;
   netProfit: number;
   netMargin: number;
+  marginPercent: number;
   operatingCashFlow: number;
   freeCashFlow: number;
   breakEvenMonth: number;
@@ -77,10 +79,12 @@ const initialResults: Results = {
   grossProfit: 0,
   grossMargin: 0,
   totalOperatingExpenses: 0,
+  operatingExpenses: 0,
   ebitda: 0,
   totalTaxes: 0,
   netProfit: 0,
   netMargin: 0,
+  marginPercent: 0,
   operatingCashFlow: 0,
   freeCashFlow: 0,
   breakEvenMonth: 0,
