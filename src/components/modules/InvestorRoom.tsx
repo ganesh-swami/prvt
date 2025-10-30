@@ -267,7 +267,7 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
     try {
       // Import store to get state
       const { store } = await import("@/store");
-      
+
       const doc = await generateComprehensiveModulePDF(
         dispatch,
         store.getState,
@@ -292,20 +292,6 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
         variant: "destructive",
       });
     }
-  };
-
-  const handleExportToPowerPoint = () => {
-    const exportData = {
-      metrics: {
-        revenue: monthlyRevenue,
-        users: activeUsers,
-        burnRate: burnRate,
-      },
-      capTable,
-      milestones,
-      moduleSummaries: summaries,
-    };
-    exportToPowerPoint(exportData, summaries, "Investor Presentation");
   };
 
   const handleGeneratePitchDeck = () => {
@@ -336,10 +322,6 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
           <Button onClick={handleExportToPDF} variant="outline">
             <FileText className="w-4 h-4 mr-2" />
             Export PDF
-          </Button>
-          <Button onClick={handleExportToPowerPoint}>
-            <Download className="w-4 h-4 mr-2" />
-            Export PPT
           </Button>
         </div>
       </div>
