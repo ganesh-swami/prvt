@@ -31,11 +31,11 @@ export const addPlanBuilderContent = (
   const contentWidth = pageWidth - 2 * margin;
 
   // // If starting on new page, add the page first
-  // if (startOnNewPage) {
-  //   doc.addPage();
-  // }
+  if (startOnNewPage) {
+    doc.addPage();
+  }
 
-  let yPos = startOnNewPage ? 20 : 80; // Start at 40 to avoid overlap with separator
+  let yPos = startOnNewPage ? 20 : 85; // Start at 40 to avoid overlap with separator
 
   // Helper function to add section header
   const addSectionHeader = (
@@ -175,7 +175,7 @@ export const addSocialCanvasContent = (
     doc.addPage();
   }
 
-  let yPos = startOnNewPage ? 20 : 40;
+  let yPos = startOnNewPage ? 20 : 85;
 
   const fieldGroups = [
     {
@@ -300,7 +300,7 @@ export const addMarketSizingContent = (
   const margin = 15;
   const contentWidth = pageWidth - 2 * margin;
 
-  let yPos = startOnNewPage ? 20 : 80;
+  let yPos = startOnNewPage ? 20 : 85;
 
   const formatValue = (value: number) => {
     // const unit = valueUnit === "billions" ? "B" : "M";
@@ -565,7 +565,7 @@ export const addPricingLabContent = (
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 15;
   const contentWidth = pageWidth - 2 * margin;
-  let yPos = startOnNewPage ? 20 : 80;
+  let yPos = startOnNewPage ? 20 : 85;
 
   // Four pricing cards in a 2x2 grid
   const cardWidth = (contentWidth - 4) / 2;
@@ -1379,10 +1379,7 @@ export const addFinancialModelerContent = (
   doc.setFont("helvetica", "normal");
 
   const cashFlowMetrics = [
-    [
-      "Operating Cash Flow:",
-      `$${results.operatingCashFlow.toLocaleString()}`,
-    ],
+    ["Operating Cash Flow:", `$${results.operatingCashFlow.toLocaleString()}`],
     ["Free Cash Flow:", `$${results.freeCashFlow.toLocaleString()}`],
     [
       "Break-Even Month:",
@@ -1535,8 +1532,7 @@ export const addFinancialModelerContent = (
       const steps = 50;
       const angleStep = angle / steps;
       for (let i = 0; i < steps; i++) {
-        const angle1 =
-          ((currentAngle + i * angleStep - 90) * Math.PI) / 180;
+        const angle1 = ((currentAngle + i * angleStep - 90) * Math.PI) / 180;
         const angle2 =
           ((currentAngle + (i + 1) * angleStep - 90) * Math.PI) / 180;
         doc.triangle(
@@ -1643,8 +1639,7 @@ export const addFinancialModelerContent = (
         yPos = 20;
       }
 
-      const rowColor =
-        index % 2 === 0 ? [255, 255, 255] : [249, 250, 251];
+      const rowColor = index % 2 === 0 ? [255, 255, 255] : [249, 250, 251];
       doc.setFillColor(rowColor[0], rowColor[1], rowColor[2]);
       doc.rect(margin, yPos, contentWidth, 6, "F");
 
@@ -1702,11 +1697,7 @@ export const addProblemTreeContent = (
   let yPos = startOnNewPage ? 20 : 85;
 
   // Helper function to add section header
-  const addSectionHeader = (
-    title: string,
-    color: number[],
-    icon: string
-  ) => {
+  const addSectionHeader = (title: string, color: number[], icon: string) => {
     // Add extra space before section
     if (yPos > 85) {
       yPos += 8;
@@ -1769,22 +1760,11 @@ export const addProblemTreeContent = (
     const lineHeight = 5;
     const minBoxHeight = 12;
     const calculatedHeight = lines.length * lineHeight + 8;
-    const boxHeight = Math.min(
-      Math.max(calculatedHeight, minBoxHeight),
-      50
-    );
+    const boxHeight = Math.min(Math.max(calculatedHeight, minBoxHeight), 50);
 
     // Draw content box
     doc.setFillColor(248, 250, 252);
-    doc.roundedRect(
-      margin + 2,
-      yPos,
-      contentWidth - 4,
-      boxHeight,
-      2,
-      2,
-      "F"
-    );
+    doc.roundedRect(margin + 2, yPos, contentWidth - 4, boxHeight, 2, 2, "F");
 
     // Add left accent border
     doc.setFillColor(203, 213, 225);
@@ -1793,15 +1773,7 @@ export const addProblemTreeContent = (
     // Border
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.3);
-    doc.roundedRect(
-      margin + 2,
-      yPos,
-      contentWidth - 4,
-      boxHeight,
-      2,
-      2,
-      "S"
-    );
+    doc.roundedRect(margin + 2, yPos, contentWidth - 4, boxHeight, 2, 2, "S");
 
     // Add text
     const displayLines = lines.slice(0, 9);
@@ -1816,10 +1788,7 @@ export const addProblemTreeContent = (
 
   // Effects & Consequences Section
   addSectionHeader("Effects & Consequences", [239, 68, 68], "↑");
-  addField(
-    "Problem Impact on Society",
-    treeData.problemImpactSociety || ""
-  );
+  addField("Problem Impact on Society", treeData.problemImpactSociety || "");
   addField(
     "Harms on Direct Beneficiaries",
     treeData.harmsDirectBeneficiaries || ""
@@ -1890,14 +1859,18 @@ export const addEcosystemMappingContent = (
   const avgRelationship =
     stakeholders.length > 0
       ? (
-          stakeholders.reduce((sum: number, s: any) => sum + s.relationshipStrength, 0) /
-          stakeholders.length
+          stakeholders.reduce(
+            (sum: number, s: any) => sum + s.relationshipStrength,
+            0
+          ) / stakeholders.length
         ).toFixed(1)
       : "0";
   const activeEngagement = stakeholders.filter(
     (s: any) => s.engagementLevel === "Active"
   ).length;
-  const highRisk = stakeholders.filter((s: any) => s.riskLevel === "High").length;
+  const highRisk = stakeholders.filter(
+    (s: any) => s.riskLevel === "High"
+  ).length;
 
   // Helper function to add section header
   const addSectionHeader = (title: string, color: number[]) => {
@@ -1988,15 +1961,7 @@ export const addEcosystemMappingContent = (
 
     // Relationship Strength Badge
     doc.setFillColor(59, 130, 246);
-    doc.roundedRect(
-      pageWidth - margin - 25,
-      cardYPos - 2,
-      22,
-      6,
-      1,
-      1,
-      "F"
-    );
+    doc.roundedRect(pageWidth - margin - 25, cardYPos - 2, 22, 6, 1, 1, "F");
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
@@ -2055,12 +2020,9 @@ export const addEcosystemMappingContent = (
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(7);
     doc.setFont("helvetica", "bold");
-    doc.text(
-      stakeholder.engagementLevel,
-      metricsStartX + 11,
-      cardYPos + 3.5,
-      { align: "center" }
-    );
+    doc.text(stakeholder.engagementLevel, metricsStartX + 11, cardYPos + 3.5, {
+      align: "center",
+    });
 
     // Risk Level Badge
     const riskColor =

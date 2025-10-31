@@ -7,18 +7,21 @@ import { loadLatestModel } from "@/store/slices/financialModelerSlice";
 import { fetchGTMPlan } from "@/store/slices/gtmPlannerSlice";
 import { fetchPlanBuilder } from "@/store/slices/planBuilderSlice";
 import { fetchSocialCanvas } from "@/store/slices/socialCanvasSlice";
-// GTM export removed from comprehensive - use individual GTM export
+import { fetchProblemTree } from "@/store/slices/problemTreeSlice";
+import { fetchStakeholders } from "@/store/slices/stakeholdersSlice";
 import { allPlanSections } from "@/components/modules/enhanced/PlanBuilderSectionsComplete";
-import { 
-  addModuleTitlePage,
-  addFooterToAllPages,
-  generatePlanBuilderPDF,
-  generateSocialCanvasPDF,
-  generateMarketSizingPDF,
-  generatePricingLabPDF,
-  generateUnitEconomicsPDF,
-  generateFinancialModelerPDF
-} from "./modulePDFGenerators";
+import { createPDFInstance, addFooterToAllPages } from "./pdfUtils";
+import {
+  addPlanBuilderContent,
+  addSocialCanvasContent,
+  addMarketSizingContent,
+  addPricingLabContent,
+  addUnitEconomicsContent,
+  addFinancialModelerContent,
+  addProblemTreeContent,
+  addEcosystemMappingContent,
+  addGTMPlannerContent,
+} from "./modulePDFExports";
 
 interface ComprehensiveExportOptions {
   projectId: string;
@@ -72,6 +75,8 @@ export const generateComprehensiveModulePDF = async (
   const fetchResults = await Promise.allSettled([
     dispatch(fetchPlanBuilder({ projectId, force: true })).unwrap().catch(e => { console.error("Plan Builder fetch failed:", e); return null; }),
     dispatch(fetchSocialCanvas({ projectId, force: true })).unwrap().catch(e => { console.error("Social Canvas fetch failed:", e); return null; }),
+    dispatch(fetchProblemTree({ projectId, force: true })).unwrap().catch(e => { console.error("Problem Tree fetch failed:", e); return null; }),
+    dispatch(fetchStakeholders({ projectId })).unwrap().catch(e => { console.error("Ecosystem Mapping fetch failed:", e); return null; }),
     dispatch(loadLatestMarketSizing(projectId)).unwrap().catch(e => { console.error("Market Sizing fetch failed:", e); return null; }),
     dispatch(loadLatestPricingLab(projectId)).unwrap().catch(e => { console.error("Pricing Lab fetch failed:", e); return null; }),
     dispatch(loadLatestUnitEconomics(projectId)).unwrap().catch(e => { console.error("Unit Economics fetch failed:", e); return null; }),
@@ -80,8 +85,9 @@ export const generateComprehensiveModulePDF = async (
   ]);
   
   console.log("Fetch results status:", fetchResults.map((r, i) => ({
-    module: ['PlanBuilder', 'SocialCanvas', 'MarketSizing', 'PricingLab', 'UnitEconomics', 'FinancialModel', 'GTM'][i],
-    status: r.status
+    module: ['PlanBuilder', 'SocialCanvas', 'ProblemTree', 'EcosystemMapping', 'MarketSizing', 'PricingLab', 'UnitEconomics', 'FinancialModel', 'GTM'][i],
+    status: r.status,
+    data: r.status === 'fulfilled' ? (r as any).value : (r as any).reason
   })));
 
   // Get state after fetching
@@ -89,6 +95,8 @@ export const generateComprehensiveModulePDF = async (
   console.log("State after fetching:", {
     planBuilder: state.planBuilder.businessPlanId,
     socialCanvas: state.socialCanvas.canvasId,
+    problemTree: state.problemTree.treeId,
+    ecosystemMap: state.ecosystemMap.stakeholders?.length,
     marketSizing: state.marketSizing.sizingId,
     pricingLab: state.pricingLab.pricingId,
     unitEconomics: state.unitEconomics.economicsId,
@@ -97,11 +105,7 @@ export const generateComprehensiveModulePDF = async (
   });
 
   // Create main comprehensive document
-  const doc = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: "a4",
-  });
+  const doc = createPDFInstance();
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -178,8 +182,7 @@ export const generateComprehensiveModulePDF = async (
   
   if (hasPlanData) {
     addModuleSeparator(doc, "Business Plan", pageWidth, [59, 130, 246]);
-    // Use shared function - same code as individual module export
-    generatePlanBuilderPDF(doc, allPlanSections, planData, false);
+    addPlanBuilderContent(doc, allPlanSections, planData, false);
   }
 
   // ========================================
@@ -196,52 +199,156 @@ export const generateComprehensiveModulePDF = async (
   
   if (hasCanvasData) {
     addModuleSeparator(doc, "Social Business Model Canvas", pageWidth, [244, 63, 94]);
-    // Use shared function - same code as individual module export
-    generateSocialCanvasPDF(doc, canvasData, false);
+    addSocialCanvasContent(doc, canvasData, false);
   }
 
   // ========================================
   // 3. PROBLEM TREE
   // ========================================
-  // TODO: Add Problem Tree export if it has export functionality
+  const problemTreeData = state.problemTree.treeData;
+  const hasProblemTreeData = state.problemTree.treeId && problemTreeData && Object.keys(problemTreeData).length > 0;
+  
+  console.log("Problem Tree check:", {
+    treeId: state.problemTree.treeId,
+    hasTreeData: hasProblemTreeData
+  });
+  
+  if (hasProblemTreeData) {
+    addModuleSeparator(doc, "Problem Tree Analysis", pageWidth, [139, 92, 246]);
+    addProblemTreeContent(doc, problemTreeData, false);
+  }
 
   // ========================================
   // 4. ECOSYSTEM MAPPING  
   // ========================================
-  // TODO: Add Ecosystem export
+  const stakeholders = state.ecosystemMap.stakeholders || [];
+  const hasEcosystemData = stakeholders.length > 0;
+  
+  console.log("Ecosystem Mapping check:", {
+    stakeholdersCount: stakeholders.length,
+    hasEcosystemData
+  });
+  
+  if (hasEcosystemData) {
+    addModuleSeparator(doc, "Ecosystem Mapping", pageWidth, [34, 197, 94]);
+    addEcosystemMappingContent(doc, stakeholders, false);
+  }
 
   // ========================================
   // 5. MARKET SIZING
   // ========================================
-  const hasMarketData = state.marketSizing.sizingId && state.marketSizing.results;
+  const hasMarketData = state.marketSizing.sizingId && 
+    state.marketSizing.results && 
+    (state.marketSizing.results.tam > 0 || 
+     state.marketSizing.results.sam > 0 || 
+     state.marketSizing.results.som > 0);
   
+  console.log("=== MARKET SIZING DEBUG ===");
   console.log("Market Sizing check:", {
     sizingId: state.marketSizing.sizingId,
     hasResults: !!state.marketSizing.results,
-    results: state.marketSizing.results
+    results: state.marketSizing.results,
+    marketData: state.marketSizing.marketData,
+    valueUnit: state.marketSizing.valueUnit,
+    hasNonZeroResults: (state.marketSizing.results?.tam > 0 || state.marketSizing.results?.sam > 0 || state.marketSizing.results?.som > 0)
   });
+  console.log("============================");
   
-  if (hasMarketData) {
+  // Check if we need to recalculate Market Sizing results
+  let marketSizingResults = state.marketSizing.results;
+  const hasMarketInput = state.marketSizing.marketData.totalMarket && 
+                         state.marketSizing.marketData.targetSegment;
+  
+  if (hasMarketInput && (!hasMarketData || marketSizingResults.tam === 0)) {
+    // Recalculate results from input data
+    const totalMarket = parseFloat(state.marketSizing.marketData.totalMarket) || 0;
+    const targetSegment = parseFloat(state.marketSizing.marketData.targetSegment) || 0;
+    const penetrationRate = parseFloat(state.marketSizing.marketData.penetrationRate) || 5;
+    const avgRevenue = parseFloat(state.marketSizing.marketData.avgRevenue) || 0;
+    
+    const multiplier = state.marketSizing.valueUnit === "billions" ? 1000000000 : 1000000;
+    const tam = totalMarket * multiplier;
+    const sam = (tam * targetSegment) / 100;
+    const som = (sam * penetrationRate) / 100;
+    const revenueOpportunity = (som / avgRevenue) * avgRevenue;
+    
+    marketSizingResults = { tam, sam, som, revenueOpportunity };
+    console.log("Recalculated Market Sizing:", marketSizingResults);
+  }
+  
+  const hasValidMarketData = marketSizingResults.tam > 0 || marketSizingResults.sam > 0 || marketSizingResults.som > 0;
+  
+  if (hasValidMarketData) {
     addModuleSeparator(doc, "Market Sizing Analysis", pageWidth, [34, 197, 94]);
-    // Use shared function - same code as individual module export
-    generateMarketSizingPDF(doc, state.marketSizing.results, state.marketSizing.valueUnit, false);
+    // Convert string penetrationRate to decimal number (e.g., "5" -> 0.05)
+    const penetrationRateStr = state.marketSizing.marketData.penetrationRate || "5";
+    const penetrationRateNum = parseFloat(penetrationRateStr) / 100 || 0.05;
+    const marketData = { penetrationRate: penetrationRateNum };
+    addMarketSizingContent(doc, marketSizingResults, marketData, state.marketSizing.valueUnit, false);
   }
 
   // ========================================
   // 6. PRICING STRATEGY
   // ========================================
-  const hasPricingData = state.pricingLab.pricingId && state.pricingLab.results && state.pricingLab.results.recommendedPrice >= 0;
+  const hasPricingData = state.pricingLab.pricingId && 
+    state.pricingLab.results && 
+    (state.pricingLab.results.recommendedPrice > 0 ||
+     state.pricingLab.results.costPlusPrice > 0 ||
+     state.pricingLab.results.valueBasedPrice > 0);
   
+  console.log("=== PRICING LAB DEBUG ===");
   console.log("Pricing Lab check:", {
     pricingId: state.pricingLab.pricingId,
     hasResults: !!state.pricingLab.results,
-    recommendedPrice: state.pricingLab.results?.recommendedPrice
+    recommendedPrice: state.pricingLab.results?.recommendedPrice,
+    results: state.pricingLab.results,
+    pricingData: state.pricingLab.pricingData,
+    strategy: state.pricingLab.strategy,
+    hasNonZeroResults: (state.pricingLab.results?.recommendedPrice > 0 || state.pricingLab.results?.costPlusPrice > 0)
   });
+  console.log("=========================");
   
-  if (hasPricingData) {
+  // Check if we need to recalculate Pricing Lab results
+  let pricingLabResults = state.pricingLab.results;
+  const hasPricingInput = state.pricingLab.pricingData.costBasis && 
+                          state.pricingLab.pricingData.targetMargin;
+  
+  if (hasPricingInput && (!hasPricingData || pricingLabResults.recommendedPrice === 0)) {
+    // Recalculate pricing results from input data
+    const costBasis = parseFloat(state.pricingLab.pricingData.costBasis) || 0;
+    const targetMargin = parseFloat(state.pricingLab.pricingData.targetMargin) || 0;
+    const competitorPrice = parseFloat(state.pricingLab.pricingData.competitorPrice) || 0;
+    const valueDelivered = parseFloat(state.pricingLab.pricingData.valueDelivered) || 0;
+    
+    const costPlusPrice = costBasis * (1 + targetMargin / 100);
+    const competitivePrice = competitorPrice * 0.95; // 5% below competitor
+    const valueBasedPrice = valueDelivered * 0.7; // 70% of value delivered
+    
+    // Recommended price is average of the three
+    const recommendedPrice = (costPlusPrice + competitivePrice + valueBasedPrice) / 3;
+    
+    // Simple demand forecast based on price elasticity
+    const elasticity = state.pricingLab.pricingData.priceElasticity?.[0] || 50;
+    const demandForecast = 1000 * (100 - elasticity) / 100;
+    
+    pricingLabResults = {
+      costPlusPrice,
+      competitivePrice,
+      valueBasedPrice,
+      recommendedPrice,
+      demandForecast
+    };
+    console.log("Recalculated Pricing Lab:", pricingLabResults);
+  }
+  
+  const hasValidPricingData = pricingLabResults.recommendedPrice > 0 || 
+                               pricingLabResults.costPlusPrice > 0 || 
+                               pricingLabResults.valueBasedPrice > 0;
+  
+  if (hasValidPricingData) {
     addModuleSeparator(doc, "Pricing Strategy", pageWidth, [139, 92, 246]);
-    // Use shared function - same code as individual module export
-    generatePricingLabPDF(doc, state.pricingLab.results, state.pricingLab.pricingData as any, false);
+    const strategy = state.pricingLab.strategy || "value-based";
+    addPricingLabContent(doc, pricingLabResults, state.pricingLab.pricingData as any, strategy, false);
   }
 
   // ========================================
@@ -257,8 +364,7 @@ export const generateComprehensiveModulePDF = async (
   
   if (hasUnitEconData) {
     addModuleSeparator(doc, "Unit Economics Analysis", pageWidth, [59, 130, 246]);
-    // Use shared function - same code as individual module export
-    generateUnitEconomicsPDF(doc, state.unitEconomics.results, false);
+    addUnitEconomicsContent(doc, state.unitEconomics.results, false);
   }
 
   // ========================================
@@ -274,15 +380,25 @@ export const generateComprehensiveModulePDF = async (
   
   if (hasFinancialData) {
     addModuleSeparator(doc, "Financial Projections", pageWidth, [16, 185, 129]);
-    // Use shared function - same code as individual module export
-    generateFinancialModelerPDF(doc, state.financialModeler.results as any, false);
+    addFinancialModelerContent(doc, state.financialModeler.results as any, false);
   }
 
   // ========================================
   // 9. GO-TO-MARKET STRATEGY
   // ========================================
-  // GTM excluded for now - use individual GTM export for full strategy
-  console.log("GTM Planner - Excluded from comprehensive export (use individual GTM export)");
+  const gtmPlannerData = state.gtmPlanner;
+  const hasGTMData = gtmPlannerData.gtmId && gtmPlannerData.productRoadmap?.businessName;
+  
+  console.log("GTM Planner check:", {
+    gtmId: gtmPlannerData.gtmId,
+    hasBusinessName: !!gtmPlannerData.productRoadmap?.businessName,
+    hasGTMData
+  });
+  
+  if (hasGTMData) {
+    addModuleSeparator(doc, "Go-To-Market Strategy", pageWidth, [13, 148, 136]);
+    addGTMPlannerContent(doc, gtmPlannerData, false);
+  }
 
   // ========================================
   // SUMMARY: Log what was included
@@ -290,11 +406,13 @@ export const generateComprehensiveModulePDF = async (
   const includedModules = {
     planBuilder: hasPlanData,
     socialCanvas: hasCanvasData,
-    marketSizing: hasMarketData,
-    pricingLab: hasPricingData,
+    problemTree: hasProblemTreeData,
+    ecosystemMapping: hasEcosystemData,
+    marketSizing: hasValidMarketData,
+    pricingLab: hasValidPricingData,
     unitEconomics: hasUnitEconData,
     financialModeler: hasFinancialData,
-    gtmPlanner: false // Excluded from comprehensive export
+    gtmPlanner: hasGTMData
   };
   
   console.log("=== PDF EXPORT SUMMARY ===");

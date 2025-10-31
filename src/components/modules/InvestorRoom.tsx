@@ -83,6 +83,7 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
   const { summaries } = useModuleSummaries(projectId || undefined);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
 
   // Get real data from Redux
   const financialResults = useAppSelector(selectFinancialResults);
@@ -264,6 +265,7 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
       return;
     }
 
+    setIsExportingPDF(true);
     try {
       // Import store to get state
       const { store } = await import("@/store");
@@ -291,6 +293,8 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
         description: "Failed to export PDF",
         variant: "destructive",
       });
+    } finally {
+      setIsExportingPDF(false);
     }
   };
 
@@ -319,9 +323,18 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Investor Room</h1>
         <div className="flex gap-2">
-          <Button onClick={handleExportToPDF} variant="outline">
-            <FileText className="w-4 h-4 mr-2" />
-            Export PDF
+          <Button onClick={handleExportToPDF} variant="outline" disabled={isExportingPDF}>
+            {isExportingPDF ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <FileText className="w-4 h-4 mr-2" />
+                Export Comprehensive PDF
+              </>
+            )}
           </Button>
         </div>
       </div>
