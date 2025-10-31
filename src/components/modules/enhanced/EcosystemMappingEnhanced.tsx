@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { FeatureGuard } from "@/components/common/FeatureGuard";
 import {
   fetchStakeholders,
   addStakeholder as addStakeholderAction,
@@ -45,7 +46,7 @@ interface EcosystemMappingEnhancedProps {
   projectId?: string | null;
 }
 
-const EcosystemMappingEnhanced: React.FC<EcosystemMappingEnhancedProps> = ({ projectId }) => {
+const EcosystemMappingEnhancedContent: React.FC<EcosystemMappingEnhancedProps> = ({ projectId }) => {
   const dispatch = useAppDispatch();
 
   // Redux selectors
@@ -440,6 +441,19 @@ const EcosystemMappingEnhanced: React.FC<EcosystemMappingEnhancedProps> = ({ pro
         </TabsContent>
       </Tabs>
     </div>
+  );
+};
+
+// Wrap with FeatureGuard to restrict access
+const EcosystemMappingEnhanced: React.FC<EcosystemMappingEnhancedProps> = ({ projectId }) => {
+  return (
+    <FeatureGuard
+      featureId="ecosystem-map"
+      featureName="Ecosystem Map"
+      description="Map and analyze your business ecosystem, stakeholders, and their relationships"
+    >
+      <EcosystemMappingEnhancedContent projectId={projectId} />
+    </FeatureGuard>
   );
 };
 

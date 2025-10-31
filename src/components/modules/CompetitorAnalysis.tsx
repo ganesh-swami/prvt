@@ -1,5 +1,5 @@
-import React, { useState, useEffect, Fragment } from 'react';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import React, { useState, useEffect, Fragment } from "react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchCompetitors,
   addCompetitor as addCompetitorAction,
@@ -13,19 +13,39 @@ import {
   selectSaving,
   selectError,
   selectLastSaved,
-} from '@/store/slices/competitorSlice';
-import { toast } from 'sonner';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Trash2, Eye, BarChart3, ExternalLink, Globe } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
-import { SaveButtons } from '@/components/common/SaveButtons';
-import { CustomTooltip } from '@/components/common/CustomTooltip';
+} from "@/store/slices/competitorSlice";
+import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Plus,
+  Trash2,
+  Eye,
+  BarChart3,
+  ExternalLink,
+  Globe,
+} from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+} from "recharts";
+import { SaveButtons } from "@/components/common/SaveButtons";
+import { CustomTooltip } from "@/components/common/CustomTooltip";
 
 interface Competitor {
   id: string;
@@ -43,9 +63,11 @@ interface CompetitorAnalysisProps {
   projectId: string;
 }
 
-export const CompetitorAnalysis: React.FC<CompetitorAnalysisProps> = ({ projectId }) => {
+export const CompetitorAnalysis: React.FC<CompetitorAnalysisProps> = ({
+  projectId,
+}) => {
   const dispatch = useAppDispatch();
-  
+
   // Redux state
   const competitors = useAppSelector(selectCompetitors);
   const newCompetitor = useAppSelector(selectNewCompetitor);
@@ -71,43 +93,43 @@ export const CompetitorAnalysis: React.FC<CompetitorAnalysisProps> = ({ projectI
 
   const addCompetitor = async () => {
     if (!newCompetitor.name) {
-      toast.error('Please enter a competitor name');
+      toast.error("Please enter a competitor name");
       return;
     }
-    
+
     try {
       await dispatch(
         addCompetitorAction({ projectId, competitor: newCompetitor })
       ).unwrap();
-      toast.success('Competitor added successfully!');
+      toast.success("Competitor added successfully!");
       dispatch(resetNewCompetitor());
     } catch (err) {
-      toast.error('Failed to add competitor');
-      console.error('Error adding competitor:', err);
+      toast.error("Failed to add competitor");
+      console.error("Error adding competitor:", err);
     }
   };
 
   const removeCompetitor = async (id: string) => {
     try {
       await dispatch(deleteCompetitorAction(id)).unwrap();
-      toast.success('Competitor deleted successfully!');
+      toast.success("Competitor deleted successfully!");
     } catch (err) {
-      toast.error('Failed to delete competitor');
-      console.error('Error deleting competitor:', err);
+      toast.error("Failed to delete competitor");
+      console.error("Error deleting competitor:", err);
     }
   };
 
-  const pricingData = competitors.map(c => ({
+  const pricingData = competitors.map((c) => ({
     name: c.name,
     pricing: c.pricing,
-    marketShare: c.marketShare
+    marketShare: c.marketShare,
   }));
 
-  const featureComparison = competitors.map(c => ({
+  const featureComparison = competitors.map((c) => ({
     name: c.name,
     features: c.features.length,
     strengths: c.strengths.length,
-    weaknesses: c.weaknesses.length
+    weaknesses: c.weaknesses.length,
   }));
 
   return (
@@ -116,7 +138,9 @@ export const CompetitorAnalysis: React.FC<CompetitorAnalysisProps> = ({ projectI
         <div>
           <div className="flex items-center gap-2">
             <CustomTooltip content="Analyze your competitors to identify market opportunities and differentiation strategies">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 cursor-help">Competitor Analysis</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 cursor-help">
+                Competitor Analysis
+              </h1>
             </CustomTooltip>
             {loading && (
               <div className="text-sm text-muted-foreground animate-pulse">
@@ -124,7 +148,9 @@ export const CompetitorAnalysis: React.FC<CompetitorAnalysisProps> = ({ projectI
               </div>
             )}
           </div>
-          <p className="text-gray-600 mt-2 text-sm sm:text-base">Analyze competitors to identify differentiation opportunities</p>
+          <p className="text-gray-600 mt-2 text-sm sm:text-base">
+            Analyze competitors to identify differentiation opportunities
+          </p>
         </div>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
           <Badge variant="secondary" className="px-3 py-1">
@@ -151,9 +177,12 @@ export const CompetitorAnalysis: React.FC<CompetitorAnalysisProps> = ({ projectI
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Eye className="w-16 h-16 text-gray-300 mb-4" />
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">No Competitors Yet</h3>
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                  No Competitors Yet
+                </h3>
                 <p className="text-gray-500 text-center mb-6 max-w-md">
-                  Start analyzing your competition by adding competitors. Click the "Add Competitor" tab to get started.
+                  Start analyzing your competition by adding competitors. Click
+                  the "Add Competitor" tab to get started.
                 </p>
                 <Button
                   onClick={() => {
@@ -177,11 +206,17 @@ export const CompetitorAnalysis: React.FC<CompetitorAnalysisProps> = ({ projectI
                     <div className="flex-1">
                       <CardTitle className="flex items-center gap-2 mb-2">
                         {competitor.name}
-                        <Badge variant="outline">${competitor.pricing}/mo</Badge>
+                        <Badge variant="outline">
+                          ${competitor.pricing}/mo
+                        </Badge>
                       </CardTitle>
                       {competitor.website && (
                         <a
-                          href={competitor.website.startsWith('http') ? competitor.website : `https://${competitor.website}`}
+                          href={
+                            competitor.website.startsWith("http")
+                              ? competitor.website
+                              : `https://${competitor.website}`
+                          }
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors"
@@ -205,8 +240,12 @@ export const CompetitorAnalysis: React.FC<CompetitorAnalysisProps> = ({ projectI
                   <CardContent className="space-y-4">
                     {competitor.description && (
                       <div>
-                        <Label className="text-sm font-semibold text-gray-900 mb-1 block">Description</Label>
-                        <p className="text-sm text-gray-700 leading-relaxed">{competitor.description}</p>
+                        <Label className="text-sm font-semibold text-gray-900 mb-1 block">
+                          Description
+                        </Label>
+                        <p className="text-sm text-gray-700 leading-relaxed">
+                          {competitor.description}
+                        </p>
                       </div>
                     )}
                     <div className="grid md:grid-cols-3 gap-4">
@@ -214,14 +253,20 @@ export const CompetitorAnalysis: React.FC<CompetitorAnalysisProps> = ({ projectI
                         <Label className="text-sm font-medium">Features</Label>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {competitor.features.map((feature, idx) => (
-                            <Badge key={idx} variant="secondary" className="text-xs">
+                            <Badge
+                              key={idx}
+                              variant="secondary"
+                              className="text-xs"
+                            >
                               {feature}
                             </Badge>
                           ))}
                         </div>
                       </div>
                       <div>
-                        <Label className="text-sm font-medium text-green-700">Strengths</Label>
+                        <Label className="text-sm font-medium text-green-700">
+                          Strengths
+                        </Label>
                         <ul className="text-sm text-gray-600 mt-1">
                           {competitor.strengths.map((strength, idx) => (
                             <li key={idx}>• {strength}</li>
@@ -229,7 +274,9 @@ export const CompetitorAnalysis: React.FC<CompetitorAnalysisProps> = ({ projectI
                         </ul>
                       </div>
                       <div>
-                        <Label className="text-sm font-medium text-red-700">Weaknesses</Label>
+                        <Label className="text-sm font-medium text-red-700">
+                          Weaknesses
+                        </Label>
                         <ul className="text-sm text-gray-600 mt-1">
                           {competitor.weaknesses.map((weakness, idx) => (
                             <li key={idx}>• {weakness}</li>
@@ -252,58 +299,91 @@ export const CompetitorAnalysis: React.FC<CompetitorAnalysisProps> = ({ projectI
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name" className="text-left block mb-1.5">Company Name</Label>
+                  <Label htmlFor="name" className="text-left block mb-1.5">
+                    Company Name
+                  </Label>
                   <Input
                     id="name"
-                    value={newCompetitor.name || ''}
-                    onChange={(e) => dispatch(setNewCompetitor({ name: e.target.value }))}
+                    value={newCompetitor.name || ""}
+                    onChange={(e) =>
+                      dispatch(setNewCompetitor({ name: e.target.value }))
+                    }
                     placeholder="Enter competitor name"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="website" className="text-left block mb-1.5">Website</Label>
+                  <Label htmlFor="website" className="text-left block mb-1.5">
+                    Website
+                  </Label>
                   <Input
                     id="website"
-                    value={newCompetitor.website || ''}
-                    onChange={(e) => dispatch(setNewCompetitor({ website: e.target.value }))}
+                    value={newCompetitor.website || ""}
+                    onChange={(e) =>
+                      dispatch(setNewCompetitor({ website: e.target.value }))
+                    }
                     placeholder="competitor.com"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="pricing" className="text-left block mb-1.5">Monthly Pricing ($)</Label>
+                  <Label htmlFor="pricing" className="text-left block mb-1.5">
+                    Monthly Pricing ($)
+                  </Label>
                   <Input
                     id="pricing"
                     type="number"
-                    value={newCompetitor.pricing || ''}
-                    onChange={(e) => dispatch(setNewCompetitor({ pricing: Number(e.target.value) }))}
+                    value={newCompetitor.pricing || ""}
+                    onChange={(e) =>
+                      dispatch(
+                        setNewCompetitor({ pricing: Number(e.target.value) })
+                      )
+                    }
                     placeholder="99"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="marketShare" className="text-left block mb-1.5">Market Share (%)</Label>
+                  <Label
+                    htmlFor="marketShare"
+                    className="text-left block mb-1.5"
+                  >
+                    Market Share (%)
+                  </Label>
                   <Input
                     id="marketShare"
                     type="number"
-                    value={newCompetitor.marketShare || ''}
-                    onChange={(e) => dispatch(setNewCompetitor({ marketShare: Number(e.target.value) }))}
+                    value={newCompetitor.marketShare || ""}
+                    onChange={(e) =>
+                      dispatch(
+                        setNewCompetitor({
+                          marketShare: Number(e.target.value),
+                        })
+                      )
+                    }
                     placeholder="25"
                   />
                 </div>
               </div>
-              
+
               <div>
-                <Label htmlFor="description" className="text-left block mb-1.5">Description</Label>
+                <Label htmlFor="description" className="text-left block mb-1.5">
+                  Description
+                </Label>
                 <Textarea
                   id="description"
-                  value={newCompetitor.description || ''}
-                  onChange={(e) => dispatch(setNewCompetitor({ description: e.target.value }))}
+                  value={newCompetitor.description || ""}
+                  onChange={(e) =>
+                    dispatch(setNewCompetitor({ description: e.target.value }))
+                  }
                   placeholder="Brief description of the competitor"
                 />
               </div>
 
-              <Button onClick={addCompetitor} className="w-full" disabled={saving}>
+              <Button
+                onClick={addCompetitor}
+                className="w-full"
+                disabled={saving}
+              >
                 <Plus className="w-4 h-4 mr-2" />
-                {saving ? 'Adding...' : 'Add Competitor'}
+                {saving ? "Adding..." : "Add Competitor"}
               </Button>
             </CardContent>
           </Card>
@@ -314,7 +394,9 @@ export const CompetitorAnalysis: React.FC<CompetitorAnalysisProps> = ({ projectI
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <BarChart3 className="w-16 h-16 text-gray-300 mb-4" />
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">No Data to Display</h3>
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                  No Data to Display
+                </h3>
                 <p className="text-gray-500 text-center mb-6 max-w-md">
                   Add competitors to see comparative charts and analytics.
                 </p>
@@ -380,8 +462,20 @@ export const CompetitorAnalysis: React.FC<CompetitorAnalysisProps> = ({ projectI
                       <PolarGrid />
                       <PolarAngleAxis dataKey="name" />
                       <PolarRadiusAxis />
-                      <Radar name="Features" dataKey="features" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} />
-                      <Radar name="Strengths" dataKey="strengths" stroke="#10b981" fill="#10b981" fillOpacity={0.6} />
+                      <Radar
+                        name="Features"
+                        dataKey="features"
+                        stroke="#3b82f6"
+                        fill="#3b82f6"
+                        fillOpacity={0.6}
+                      />
+                      <Radar
+                        name="Strengths"
+                        dataKey="strengths"
+                        stroke="#10b981"
+                        fill="#10b981"
+                        fillOpacity={0.6}
+                      />
                       <Tooltip />
                     </RadarChart>
                   </ResponsiveContainer>

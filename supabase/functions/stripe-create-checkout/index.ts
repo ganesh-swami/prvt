@@ -57,7 +57,7 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${origin}/payment-success?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${origin}/payment-status?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/pricing?canceled=true`,
       customer_email: userEmail,
       client_reference_id: orgId || userId,

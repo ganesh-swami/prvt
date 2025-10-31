@@ -36,13 +36,26 @@ export const MainContent: React.FC = () => {
 
   const renderModule = () => {
     // If no project is selected, show project selection message for modules that need it
-    if (!currentProjectId && ["market-sizing", "pricing", "unit-economics", "financial", "competitor-analysis", "risk-center", "gtm", "team-collaboration"].includes(currentModule)) {
+    if (
+      !currentProjectId &&
+      [
+        "market-sizing",
+        "pricing",
+        "unit-economics",
+        "financial",
+        "competitor-analysis",
+        "risk-center",
+        "gtm",
+        "team-collaboration",
+      ].includes(currentModule)
+    ) {
       return (
         <div className="flex items-center justify-center h-full">
           <div className="text-center p-8 max-w-md">
             <h2 className="text-2xl font-bold mb-4">No Project Selected</h2>
             <p className="text-muted-foreground mb-6">
-              Please create or select a project from the Projects page to use this module.
+              Please create or select a project from the Projects page to use
+              this module.
             </p>
           </div>
         </div>
@@ -58,7 +71,7 @@ export const MainContent: React.FC = () => {
         return <SocialBusinessCanvasImproved projectId={currentProjectId} />;
       case "problem-tree":
         return <ProblemTree projectId={currentProjectId} />;
-      case "ecosystem-mapping":
+      case "ecosystem-map":
         return <EcosystemMappingEnhanced projectId={currentProjectId} />;
       case "market-sizing":
         return <MarketSizingEnhanced projectId={currentProjectId!} />;

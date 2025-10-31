@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { AppProvider } from "@/contexts/AppContext";
 import { DraftProvider } from "@/contexts/DraftContext";
 import { SubscriptionSync } from "@/components/billing/SubscriptionSync";
+import { SubscriptionLoader } from "@/components/billing/SubscriptionLoader";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
 import PaymentSuccess from "@/pages/PaymentSuccess";
@@ -24,11 +25,12 @@ function App() {
             <AppProvider>
               <DraftProvider>
                 <SubscriptionSync />
+                <SubscriptionLoader />
                 <Router>
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route
-                      path="/payment-success"
+                      path="/payment-status"
                       element={<PaymentSuccess />}
                     />
                     <Route path="*" element={<NotFound />} />
