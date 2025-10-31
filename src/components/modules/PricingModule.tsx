@@ -6,12 +6,28 @@ import { PricingToggle } from "@/components/pricing/PricingToggle";
 import { PlanCard } from "@/components/pricing/PlanCard";
 import { FeatureComparison } from "@/components/pricing/FeatureComparison";
 import { MarketplaceSection } from "@/components/pricing/MarketplaceSection";
-import { supabase } from "@/lib/supabase";
 import { loadPricing } from "@/lib/pricing";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspaceSubscription } from "@/hooks/useWorkspaceSubscription";
 import { useToast } from "@/hooks/use-toast";
 import { Sparkles, Zap, Shield, Crown } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+
+// Stripe Price IDs - REPLACE WITH YOUR ACTUAL STRIPE PRICE IDs FROM DASHBOARD
+const STRIPE_PRICE_IDS = {
+  solo: {
+    monthly: "price_1SOEKL1ve6OZ00bMVJIzrov7", // Replace with solo monthly price ID
+    annual: "price_1SOEp31ve6OZ00bMQwnDc4hH", // Replace with solo annual price ID
+  },
+  "pro-team": {
+    monthly: "price_1SOEOY1ve6OZ00bMyMyRttUE", // Replace with pro-team monthly price ID
+    annual: "price_1SOEoj1ve6OZ00bMuOsHs4XG", // Replace with pro-team annual price ID
+  },
+  business: {
+    monthly: "price_1SOEP01ve6OZ00bMI4KjSeT2", // Replace with business monthly price ID
+    annual: "price_1SOEoP1ve6OZ00bMFzDRPKGm", // Replace with business annual price ID
+  },
+};
 
 export function PricingModule() {
   const [isAnnual, setIsAnnual] = useState(false);
@@ -30,7 +46,8 @@ export function PricingModule() {
   }, []);
 
   const handlePlanSelect = async (planKey: string) => {
-    console.log("[Pricing] handlePlanSelect start", { planKey, isAnnual });
+    console.log("[Pricing] Creating checkout session", { planKey, isAnnual });
+
     if (!user) {
       toast({
         title: "Authentication required",
@@ -42,85 +59,53 @@ export function PricingModule() {
 
     setLoading(true);
     try {
-      const withTimeout = async <T,>(
-        promise: Promise<T>,
-        ms = 12000
-      ): Promise<T> => {
-        return await Promise.race([
-          promise,
-          new Promise<T>((_, reject) =>
-            setTimeout(() => reject(new Error("Operation timed out")), ms)
-          ),
-        ]);
-      };
+      // Get the correct Stripe Price ID
+      const billingCycle = isAnnual ? "annual" : "monthly";
+      const priceId =
+        STRIPE_PRICE_IDS[planKey as keyof typeof STRIPE_PRICE_IDS]?.[
+          billingCycle
+        ];
 
-      // Prefer organization from AuthContext to avoid extra queries/timeouts
-      let orgId = currentOrganization?.id as string | undefined;
-      console.log("[Pricing] using currentOrganization", { orgId });
-
-      // If user doesn't have an organization, create one
-      if (!orgId) {
-        console.log("[Pricing] creating organization for user", user.id);
-        const { data: newOrg, error: createOrgError } = await withTimeout(
-          supabase
-            .from("organizations")
-            .insert({
-              name: `${appUser?.name || user.email}'s Organization`,
-              subscription_plan: "starter",
-            })
-            .select("id")
-            .single()
-        );
-
-        if (createOrgError) {
-          console.error("Error creating organization:", createOrgError);
-          toast({
-            title: "Error",
-            description: "Failed to create organization. Please try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        orgId = newOrg.id;
-
-        // Add user to the new organization
-        await withTimeout(
-          supabase.from("org_members").insert({
-            org_id: orgId,
-            user_id: user.id,
-            role: "owner",
-          })
-        );
+      if (!priceId || priceId.startsWith("price_xxx")) {
+        toast({
+          title: "Configuration Error",
+          description:
+            "Stripe price IDs not configured. Please update STRIPE_PRICE_IDS in PricingModule.tsx",
+          variant: "destructive",
+        });
+        return;
       }
 
-      console.log("[Pricing] invoking stripe-checkout", {
-        planKey,
-        isAnnual,
-        orgId,
-      });
-      const { data, error } = await withTimeout(
-        supabase.functions.invoke("stripe-checkout", {
+      console.log("[Pricing] Using price ID:", priceId);
+
+      // Call Edge Function to create checkout session
+      const { data, error } = await supabase.functions.invoke(
+        "stripe-create-checkout",
+        {
           body: {
-            planId: planKey,
-            billingCycle: isAnnual ? "annual" : "monthly",
-            orgId: orgId,
+            priceId,
+            userEmail: user.email,
+            userId: user.id,
+            orgId: currentOrganization?.id,
           },
-        })
+        }
       );
-      console.log("[Pricing] function response", { data, error });
+
       if (error) {
         console.error("Checkout error:", error);
         toast({
-          title: "Error",
-          description: "Failed to create checkout session. Please try again.",
+          title: "Checkout Error",
+          description: error.message || "Failed to create checkout session",
           variant: "destructive",
         });
         return;
       }
 
       if (data?.url) {
+        console.log("[Pricing] Redirecting to:", data.url);
         window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL received");
       }
     } catch (error) {
       console.error("Error creating checkout:", error);
@@ -131,7 +116,6 @@ export function PricingModule() {
       });
     } finally {
       setLoading(false);
-      console.log("[Pricing] handlePlanSelect end");
     }
   };
 
@@ -211,13 +195,13 @@ export function PricingModule() {
               <Shield className="h-4 w-4 mr-2" />
               Feature Comparison
             </TabsTrigger>
-            <TabsTrigger
+            {/* <TabsTrigger
               value="marketplace"
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white"
             >
               <Sparkles className="h-4 w-4 mr-2" />
               Template Marketplace
-            </TabsTrigger>
+            </TabsTrigger> */}
           </TabsList>
 
           <TabsContent value="plans" className="space-y-8">
@@ -233,7 +217,7 @@ export function PricingModule() {
                   price={plan.price}
                   period={isAnnual ? "annual" : "monthly"}
                   features={plan.features}
-                  isPopular={plan.key === "pro"}
+                  isPopular={plan.key === "pro-team"}
                   isCurrentPlan={subscription.planId === plan.key}
                   onSelect={() => handlePlanSelect(plan.key)}
                 />

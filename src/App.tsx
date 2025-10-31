@@ -10,6 +10,7 @@ import { DraftProvider } from "@/contexts/DraftContext";
 import { SubscriptionSync } from "@/components/billing/SubscriptionSync";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
+import PaymentSuccess from "@/pages/PaymentSuccess";
 import "./App.css";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,10 @@ function App() {
                 <Router>
                   <Routes>
                     <Route path="/" element={<Index />} />
+                    <Route
+                      path="/payment-success"
+                      element={<PaymentSuccess />}
+                    />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Router>

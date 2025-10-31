@@ -98,7 +98,7 @@ const menuItems: MenuItem[] = [
   {
     icon: Network,
     label: "Ecosystem Map",
-    id: "ecosystem-mapping",
+    id: "ecosystem-map",
     category: "analysis",
   },
   {

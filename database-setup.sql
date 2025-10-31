@@ -34,8 +34,8 @@ CREATE TABLE IF NOT EXISTS public.organizations (
   CONSTRAINT organizations_pkey PRIMARY KEY (id)
 );
 
--- do not use organization members table anymore
--- useless (looks like) Organization members table
+
+-- Organization members table
 CREATE TABLE IF NOT EXISTS public.org_members (
   org_id uuid NOT NULL,
   user_id uuid NOT NULL,
@@ -1376,6 +1376,127 @@ GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated;
+
+
+-- Enhanced subscription tracking for organizations
+-- This migration adds fields to track subscription details and enforce access control
+
+-- Add subscription tracking fields
+ALTER TABLE organizations
+ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'trialing',
+ADD COLUMN IF NOT EXISTS subscription_plan TEXT DEFAULT 'starter',
+ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT UNIQUE,
+ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT UNIQUE,
+ADD COLUMN IF NOT EXISTS billing_cycle TEXT DEFAULT 'monthly',
+ADD COLUMN IF NOT EXISTS subscription_start_date TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS subscription_end_date TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS subscription_cancel_at TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS trial_end_date TIMESTAMPTZ;
+
+-- Add indexes for faster lookups
+CREATE INDEX IF NOT EXISTS idx_organizations_stripe_customer_id 
+  ON organizations(stripe_customer_id);
+CREATE INDEX IF NOT EXISTS idx_organizations_stripe_subscription_id 
+  ON organizations(stripe_subscription_id);
+CREATE INDEX IF NOT EXISTS idx_organizations_subscription_status 
+  ON organizations(subscription_status);
+CREATE INDEX IF NOT EXISTS idx_organizations_subscription_plan 
+  ON organizations(subscription_plan);
+
+-- Add comments for documentation
+COMMENT ON COLUMN organizations.subscription_status IS 
+  'Stripe subscription status: trialing, active, past_due, canceled, incomplete, incomplete_expired, unpaid';
+COMMENT ON COLUMN organizations.subscription_plan IS 
+  'Plan type: starter (free), solo, pro-team, business';
+COMMENT ON COLUMN organizations.billing_cycle IS 
+  'Billing frequency: monthly or annual';
+COMMENT ON COLUMN organizations.subscription_start_date IS 
+  'When the current subscription period started';
+COMMENT ON COLUMN organizations.subscription_end_date IS 
+  'When the current subscription period ends (for billing cycle)';
+COMMENT ON COLUMN organizations.subscription_cancel_at IS 
+  'Scheduled cancellation date (subscription remains active until this date)';
+COMMENT ON COLUMN organizations.trial_end_date IS 
+  'When the trial period ends';
+
+-- Create a helper function to check if organization has active subscription
+CREATE OR REPLACE FUNCTION has_active_subscription(org_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+  org_record RECORD;
+BEGIN
+  SELECT subscription_status, subscription_end_date
+  INTO org_record
+  FROM organizations
+  WHERE id = org_id;
+  
+  -- Active if status is active/trialing and not past end date
+  RETURN org_record.subscription_status IN ('active', 'trialing')
+    AND (org_record.subscription_end_date IS NULL 
+         OR org_record.subscription_end_date > NOW());
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create a helper function to get plan features
+CREATE OR REPLACE FUNCTION get_plan_limits(plan_name TEXT)
+RETURNS JSONB AS $$
+BEGIN
+  RETURN CASE plan_name
+    WHEN 'starter' THEN jsonb_build_object(
+      'projects_max', 3,
+      'exports_per_month', 5,
+      'seats_max', 1,
+      'features', jsonb_build_array('Basic modules', 'JSON export')
+    )
+    WHEN 'solo' THEN jsonb_build_object(
+      'projects_max', 10,
+      'exports_per_month', 50,
+      'seats_max', 1,
+      'features', jsonb_build_array('All modules', 'PDF export', 'CSV export')
+    )
+    WHEN 'pro-team' THEN jsonb_build_object(
+      'projects_max', 50,
+      'exports_per_month', 200,
+      'seats_max', 5,
+      'features', jsonb_build_array('All modules', 'Team collaboration', 'PowerPoint export', 'AI Analyst')
+    )
+    WHEN 'business' THEN jsonb_build_object(
+      'projects_max', -1,
+      'exports_per_month', -1,
+      'seats_max', 20,
+      'features', jsonb_build_array('Everything', 'Unlimited exports', 'Priority support', 'Investor Room')
+    )
+    ELSE jsonb_build_object('projects_max', 3, 'exports_per_month', 5, 'seats_max', 1)
+  END;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Create view for easy subscription info access
+CREATE OR REPLACE VIEW organization_subscriptions AS
+SELECT 
+  o.id,
+  o.name,
+  o.subscription_plan,
+  o.subscription_status,
+  o.billing_cycle,
+  o.subscription_start_date,
+  o.subscription_end_date,
+  o.subscription_cancel_at,
+  o.trial_end_date,
+  o.stripe_customer_id,
+  o.stripe_subscription_id,
+  has_active_subscription(o.id) as is_active,
+  get_plan_limits(o.subscription_plan) as plan_limits,
+  CASE 
+    WHEN o.subscription_end_date IS NOT NULL 
+    THEN EXTRACT(DAY FROM (o.subscription_end_date - NOW()))::INTEGER
+    ELSE NULL
+  END as days_until_renewal
+FROM organizations o;
+
+COMMENT ON VIEW organization_subscriptions IS 
+  'Unified view of organization subscription information with computed fields';
+
 
 -- Success message
 SELECT 'Database setup completed successfully!' as status;
