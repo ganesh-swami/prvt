@@ -127,7 +127,9 @@ const Projects: React.FC = () => {
       setFormData({ name: "", description: "" });
       setFormErrors({});
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to create project");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create project"
+      );
     }
   };
 
@@ -156,16 +158,23 @@ const Projects: React.FC = () => {
       setFormData({ name: "", description: "" });
       setFormErrors({});
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update project");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update project"
+      );
     }
   };
 
-  const handleArchiveProject = async (projectId: string, projectName: string) => {
+  const handleArchiveProject = async (
+    projectId: string,
+    projectName: string
+  ) => {
     try {
       await dispatch(archiveProject(projectId)).unwrap();
       toast.success(`Project "${projectName}" archived successfully`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to archive project");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to archive project"
+      );
     }
   };
 
@@ -192,26 +201,36 @@ const Projects: React.FC = () => {
     toast.success(`"${project.name}" is now your active project`);
   };
 
-  const ProjectCard = ({ project, isArchived = false }: { project: Project; isArchived?: boolean }) => {
+  const ProjectCard = ({
+    project,
+    isArchived = false,
+  }: {
+    project: Project;
+    isArchived?: boolean;
+  }) => {
     const isSelected = currentProject?.id === project.id;
-    
+
     return (
-    <Card 
-      className={`hover:shadow-md transition-all cursor-pointer ${
-        isSelected ? 'ring-2 ring-blue-500 shadow-md' : ''
-      }`}
-      onClick={() => !isArchived && handleSelectProject(project)}
-    >
-      <CardContent className="pt-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <FolderOpen className={`h-5 w-5 ${isSelected ? 'text-blue-600' : 'text-gray-600'}`} />
-              <h3 className="text-lg font-semibold">{project.name}</h3>
-              {isSelected && (
-                <Badge className="bg-blue-600 text-white">Active</Badge>
-              )}
-              <Badge
+      <Card
+        className={`hover:shadow-md transition-all cursor-pointer ${
+          isSelected ? "ring-2 ring-blue-500 shadow-md" : ""
+        }`}
+        onClick={() => !isArchived && handleSelectProject(project)}
+      >
+        <CardContent className="pt-6">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <FolderOpen
+                  className={`h-5 w-5 ${
+                    isSelected ? "text-blue-600" : "text-gray-600"
+                  }`}
+                />
+                <h3 className="text-lg font-semibold">{project.name}</h3>
+                {isSelected && (
+                  <Badge className="bg-blue-600 text-white">Active</Badge>
+                )}
+                {/* <Badge
                 variant="secondary"
                 className={
                   project.status === "active"
@@ -222,55 +241,55 @@ const Projects: React.FC = () => {
                 }
               >
                 {project.status}
-              </Badge>
+              </Badge> */}
+              </div>
+              {project.description && (
+                <p className="text-sm text-muted-foreground mb-3">
+                  {project.description}
+                </p>
+              )}
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-4 w-4" />
+                  <span>Created {formatDate(project.created_at)}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-4 w-4" />
+                  <span>Updated {formatDate(project.updated_at)}</span>
+                </div>
+              </div>
             </div>
-            {project.description && (
-              <p className="text-sm text-muted-foreground mb-3">
-                {project.description}
-              </p>
-            )}
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                <span>Created {formatDate(project.created_at)}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                <span>Updated {formatDate(project.updated_at)}</span>
-              </div>
+            <div className="flex gap-1">
+              {!isArchived && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditDialog(project);
+                    }}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleArchiveProject(project.id, project.name);
+                    }}
+                    disabled={saving}
+                  >
+                    <Archive className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
             </div>
           </div>
-          <div className="flex gap-2">
-            {!isArchived && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openEditDialog(project);
-                  }}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleArchiveProject(project.id, project.name);
-                  }}
-                  disabled={saving}
-                >
-                  <Archive className="h-4 w-4" />
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
+        </CardContent>
+      </Card>
+    );
   };
 
   return (
@@ -378,7 +397,10 @@ const Projects: React.FC = () => {
               )}
             </div>
             <div>
-              <Label htmlFor="edit-description" className="text-left block mb-1.5">
+              <Label
+                htmlFor="edit-description"
+                className="text-left block mb-1.5"
+              >
                 Description
               </Label>
               <Textarea
@@ -459,7 +481,9 @@ const Projects: React.FC = () => {
             <Card>
               <CardContent className="p-12 text-center">
                 <Archive className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No Archived Projects</h3>
+                <h3 className="text-lg font-medium mb-2">
+                  No Archived Projects
+                </h3>
                 <p className="text-sm text-muted-foreground">
                   Archived projects will appear here
                 </p>

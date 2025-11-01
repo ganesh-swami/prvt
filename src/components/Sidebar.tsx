@@ -245,11 +245,11 @@ const ProjectSelector: React.FC = () => {
     // Set new project
     dispatch(setCurrentProject(selectedProject));
 
+    // refresh the page
+    window.location.reload();
+
     // Show success message
-    toast.success(`Switched to "${selectedProject.name}"`, {
-      description:
-        "All module data has been cleared and will reload for this project.",
-    });
+    toast.success(`Switched to "${selectedProject.name}"`);
 
     // Optional: Reload the page to ensure clean state
     // Uncomment if you want a hard refresh on project switch
