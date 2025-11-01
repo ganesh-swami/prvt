@@ -34,3 +34,6 @@ dist-ssr
 *.key
 secrets/
 .windsurf/*
+.env
+.env.production
+.env.development
