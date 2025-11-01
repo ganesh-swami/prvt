@@ -52,8 +52,27 @@ serve(async (req) => {
 
     console.log("Processing webhook event:", event.type);
 
-    // Handle events
-    switch (event.type) {
+    // Log webhook event to database
+    const { data: webhookLog, error: logError } = await supabase
+      .from("webhook_events")
+      .insert({
+        event_id: event.id,
+        event_type: event.type,
+        event_data: event as any,
+        processing_status: "processing",
+      })
+      .select("id")
+      .single();
+
+    if (logError) {
+      console.error("Error logging webhook event:", logError);
+    }
+
+    const webhookLogId = webhookLog?.id;
+
+    try {
+      // Handle events
+      switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         console.log("Checkout completed:", session.id);
@@ -113,17 +132,61 @@ serve(async (req) => {
 
         const userId = userData.id;
 
-        // Find or create organization
-        const { data: orgData, error: orgError } = await supabase
+        // Strategy: Find or update existing organization
+        // 1. Try to find by stripe_customer_id (existing subscription)
+        // 2. If not found, find user's organization via org_members
+        // 3. Update that organization with stripe details
+        // 4. Only create new org if user has NO organization
+
+        let orgId: string;
+        let existingOrg = null;
+
+        // First, try to find by stripe customer ID
+        const { data: orgByStripe } = await supabase
           .from("organizations")
           .select("id")
           .eq("stripe_customer_id", session.customer)
           .single();
 
-        let orgId: string;
+        if (orgByStripe) {
+          existingOrg = orgByStripe;
+        } else {
+          // Try to find user's existing organization via org_members
+          const { data: userOrgData } = await supabase
+            .from("org_members")
+            .select("org_id, organizations!inner(id, name)")
+            .eq("user_id", userId)
+            .eq("role", "owner")
+            .single();
 
-        if (orgError || !orgData) {
-          // Create new organization
+          if (userOrgData) {
+            existingOrg = { id: userOrgData.org_id };
+          }
+        }
+
+        if (existingOrg) {
+          // Update existing organization with subscription details
+          orgId = existingOrg.id;
+
+          const { error: updateError } = await supabase
+            .from("organizations")
+            .update({
+              subscription_plan: planName,
+              subscription_status: subscription.status,
+              stripe_customer_id: session.customer as string,
+              stripe_subscription_id: subscription.id,
+              subscription_period_end: subscriptionEndDate,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", orgId);
+
+          if (updateError) {
+            console.error("Error updating organization:", updateError);
+          } else {
+            console.log("Updated existing organization:", orgId);
+          }
+        } else {
+          // User has no organization - create new one (invited users case)
           const { data: newOrg, error: createError } = await supabase
             .from("organizations")
             .insert({
@@ -132,11 +195,7 @@ serve(async (req) => {
               subscription_status: subscription.status,
               stripe_customer_id: session.customer as string,
               stripe_subscription_id: subscription.id,
-              billing_cycle: billingCycle === "year" ? "annual" : "monthly",
-              subscription_start_date: subscriptionStartDate.toISOString(),
-              subscription_end_date: subscriptionEndDate.toISOString(),
-              trial_end_date: trialEndDate?.toISOString(),
-              subscription_cancel_at: cancelAtDate?.toISOString(),
+              subscription_period_end: subscriptionEndDate,
             })
             .select("id")
             .single();
@@ -155,27 +214,7 @@ serve(async (req) => {
             role: "owner",
           });
 
-          console.log("Created organization:", orgId);
-        } else {
-          orgId = orgData.id;
-
-          // Update existing organization
-          await supabase
-            .from("organizations")
-            .update({
-              subscription_plan: planName,
-              subscription_status: subscription.status,
-              stripe_subscription_id: subscription.id,
-              billing_cycle: billingCycle === "year" ? "annual" : "monthly",
-              subscription_start_date: subscriptionStartDate.toISOString(),
-              subscription_end_date: subscriptionEndDate.toISOString(),
-              trial_end_date: trialEndDate?.toISOString(),
-              subscription_cancel_at: cancelAtDate?.toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", orgId);
-
-          console.log("Updated organization:", orgId);
+          console.log("Created new organization for invited user:", orgId);
         }
 
         break;
@@ -214,10 +253,7 @@ serve(async (req) => {
             .update({
               subscription_plan: planName,
               subscription_status: subscription.status,
-              billing_cycle: billingCycle === "year" ? "annual" : "monthly",
-              subscription_start_date: subscriptionStartDate.toISOString(),
-              subscription_end_date: subscriptionEndDate.toISOString(),
-              subscription_cancel_at: cancelAtDate?.toISOString(),
+              subscription_period_end: subscriptionEndDate,
               updated_at: new Date().toISOString(),
             })
             .eq("id", org.id);
@@ -285,9 +321,40 @@ serve(async (req) => {
         console.log(`Unhandled event type: ${event.type}`);
     }
 
-    return new Response(JSON.stringify({ received: true }), {
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
+      // Update webhook log status to success
+      if (webhookLogId) {
+        await supabase
+          .from("webhook_events")
+          .update({
+            processing_status: "success",
+            processed_at: new Date().toISOString(),
+          })
+          .eq("id", webhookLogId);
+      }
+
+      return new Response(JSON.stringify({ received: true }), {
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    } catch (processingError: any) {
+      console.error("Error processing webhook:", processingError);
+      
+      // Update webhook log status to failed
+      if (webhookLogId) {
+        await supabase
+          .from("webhook_events")
+          .update({
+            processing_status: "failed",
+            error_message: processingError.message,
+            processed_at: new Date().toISOString(),
+          })
+          .eq("id", webhookLogId);
+      }
+
+      return new Response(JSON.stringify({ error: processingError.message }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
   } catch (error: any) {
     console.error("Webhook error:", error);
     return new Response(JSON.stringify({ error: error.message }), {

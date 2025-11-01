@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { FeatureGuard } from '@/components/common/FeatureGuard';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
   setPricingData,
@@ -36,7 +37,7 @@ interface PricingLabEnhancedProps {
   projectId: string;
 }
 
-const PricingLabEnhanced: React.FC<PricingLabEnhancedProps> = ({ projectId }) => {
+const PricingLabEnhancedContent: React.FC<PricingLabEnhancedProps> = ({ projectId }) => {
   const dispatch = useAppDispatch();
   const { toast: toastHook } = useToast();
   const [isExporting, setIsExporting] = useState(false);
@@ -500,6 +501,18 @@ const PricingLabEnhanced: React.FC<PricingLabEnhancedProps> = ({ projectId }) =>
         </TabsContent>
       </Tabs>
     </div>
+  );
+};
+
+const PricingLabEnhanced: React.FC<PricingLabEnhancedProps> = (props) => {
+  return (
+    <FeatureGuard
+      featureId="pricing"
+      featureName="Pricing Lab"
+      description="Develop and test different pricing strategies including cost-plus, competitive, and value-based pricing models"
+    >
+      <PricingLabEnhancedContent {...props} />
+    </FeatureGuard>
   );
 };
 

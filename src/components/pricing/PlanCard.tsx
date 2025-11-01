@@ -1,33 +1,78 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, Sparkles } from "lucide-react";
 
 interface PlanCardProps {
+  planKey: string;
   name: string;
   price: number;
-  period: 'monthly' | 'annual';
+  period: "monthly" | "annual";
   features: string[];
   isPopular?: boolean;
   isCurrentPlan?: boolean;
   onSelect: () => void;
+  subscribedPlan?: string;
 }
 
-export function PlanCard({ 
-  name, 
-  price, 
-  period, 
-  features, 
-  isPopular, 
-  isCurrentPlan, 
-  onSelect 
+// Plan hierarchy: starter < solo < pro-team < business
+const PLAN_HIERARCHY: Record<string, number> = {
+  starter: 0,
+  solo: 1,
+  "pro-team": 2,
+  business: 3,
+};
+
+function getButtonText(
+  planKey: string,
+  subscribedPlan: string | undefined,
+  isCurrentPlan: boolean
+): string | null {
+  if (isCurrentPlan) {
+    return "Current Plan";
+  }
+
+  if (!subscribedPlan) {
+    return "Get Started";
+  }
+
+  const currentPlanLevel = PLAN_HIERARCHY[subscribedPlan] ?? -1;
+  const targetPlanLevel = PLAN_HIERARCHY[planKey] ?? -1;
+
+  if (targetPlanLevel > currentPlanLevel) {
+    return "Upgrade";
+  }
+
+  return null; // Hide button for lower or same tier plans
+}
+
+export function PlanCard({
+  planKey,
+  name,
+  price,
+  period,
+  features,
+  isPopular,
+  isCurrentPlan,
+  onSelect,
+  subscribedPlan,
 }: PlanCardProps) {
+  const buttonText = getButtonText(planKey, subscribedPlan, isCurrentPlan);
+
   return (
-    <Card className={`relative transition-all duration-300 hover:shadow-xl ${
-      isPopular 
-        ? 'border-2 border-gradient-to-r from-blue-500 to-purple-500 shadow-lg scale-105' 
-        : 'border hover:border-blue-200'
-    }`}>
+    <Card
+      className={`relative transition-all duration-300 hover:shadow-xl ${
+        isPopular
+          ? "border-2 border-gradient-to-r from-blue-500 to-purple-500 shadow-lg scale-105"
+          : "border hover:border-blue-200"
+      }`}
+    >
       {isPopular && (
         <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
           <Badge className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-1 flex items-center gap-1">
@@ -36,7 +81,7 @@ export function PlanCard({
           </Badge>
         </div>
       )}
-      
+
       <CardHeader className="text-center pb-4">
         <CardTitle className="text-2xl font-bold">{name}</CardTitle>
         <div className="mt-6">
@@ -44,11 +89,11 @@ export function PlanCard({
             €{price}
           </span>
           <span className="text-muted-foreground text-lg">
-            /{period === 'annual' ? 'year' : 'month'}
+            /{period === "annual" ? "year" : "month"}
           </span>
         </div>
       </CardHeader>
-      
+
       <CardContent className="px-6">
         <ul className="space-y-3">
           {features.map((feature, index) => (
@@ -59,20 +104,24 @@ export function PlanCard({
           ))}
         </ul>
       </CardContent>
-      
+
       <CardFooter className="pt-6">
-        <Button 
-          className={`w-full py-6 text-lg font-semibold transition-all duration-300 ${
-            isPopular 
-              ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white' 
-              : ''
-          }`}
-          variant={isCurrentPlan ? "outline" : (isPopular ? "default" : "outline")}
-          onClick={onSelect}
-          disabled={isCurrentPlan}
-        >
-          {isCurrentPlan ? 'Current Plan' : 'Get Started'}
-        </Button>
+        {buttonText && (
+          <Button
+            className={`w-full py-6 text-lg font-semibold transition-all duration-300 ${
+              isPopular
+                ? "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white"
+                : ""
+            }`}
+            variant={
+              isCurrentPlan ? "outline" : isPopular ? "default" : "outline"
+            }
+            onClick={onSelect}
+            disabled={isCurrentPlan}
+          >
+            {buttonText}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

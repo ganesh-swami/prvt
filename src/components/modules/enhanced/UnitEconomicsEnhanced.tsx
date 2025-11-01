@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { FeatureGuard } from "@/components/common/FeatureGuard";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   setMetrics,
@@ -40,7 +41,7 @@ interface UnitEconomicsEnhancedProps {
   projectId: string;
 }
 
-const UnitEconomicsEnhanced: React.FC<UnitEconomicsEnhancedProps> = ({
+const UnitEconomicsEnhancedContent: React.FC<UnitEconomicsEnhancedProps> = ({
   projectId,
 }) => {
   const dispatch = useAppDispatch();
@@ -581,6 +582,18 @@ const UnitEconomicsEnhanced: React.FC<UnitEconomicsEnhancedProps> = ({
         </TabsContent>
       </Tabs>
     </div>
+  );
+};
+
+const UnitEconomicsEnhanced: React.FC<UnitEconomicsEnhancedProps> = (props) => {
+  return (
+    <FeatureGuard
+      featureId="unit-economics"
+      featureName="Unit Economics"
+      description="Calculate and analyze key metrics like LTV, CAC, payback period, and ARR to understand your business economics"
+    >
+      <UnitEconomicsEnhancedContent {...props} />
+    </FeatureGuard>
   );
 };
 

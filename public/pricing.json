@@ -76,7 +76,7 @@
         "financial": true,
         "market-sizing": true,
         "pricing": true,
-        "team-collaboration": true,
+        "team-collaboration": false,
         "gtm": false,
         "competitor-analysis": false,
         "risk-center": false,

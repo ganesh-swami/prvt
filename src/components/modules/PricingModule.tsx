@@ -8,7 +8,8 @@ import { FeatureComparison } from "@/components/pricing/FeatureComparison";
 import { MarketplaceSection } from "@/components/pricing/MarketplaceSection";
 import { loadPricing } from "@/lib/pricing";
 import { useAuth } from "@/contexts/AuthContext";
-import { useWorkspaceSubscription } from "@/hooks/useWorkspaceSubscription";
+import { useAppSelector } from "@/store/hooks";
+import { selectCurrentOrgSubscription } from "@/store/slices/subscriptionSlice";
 import { useToast } from "@/hooks/use-toast";
 import { Sparkles, Zap, Shield, Crown } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -34,8 +35,15 @@ export function PricingModule() {
   const [pricing, setPricing] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const { user, appUser, currentOrganization } = useAuth();
-  const subscription = useWorkspaceSubscription();
+  const orgSubscription = useAppSelector(selectCurrentOrgSubscription);
   const { toast } = useToast();
+
+  // Get current plan from Redux subscription state
+  const currentPlan = orgSubscription?.subscription_plan || "starter";
+  const subscription = {
+    planId: currentPlan,
+    addons: [],
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -213,6 +221,7 @@ export function PricingModule() {
               {plans.map((plan) => (
                 <PlanCard
                   key={plan.key}
+                  planKey={plan.key}
                   name={plan.name}
                   price={plan.price}
                   period={isAnnual ? "annual" : "monthly"}
@@ -220,6 +229,7 @@ export function PricingModule() {
                   isPopular={plan.key === "pro-team"}
                   isCurrentPlan={subscription.planId === plan.key}
                   onSelect={() => handlePlanSelect(plan.key)}
+                  subscribedPlan={subscription.planId}
                 />
               ))}
             </div>

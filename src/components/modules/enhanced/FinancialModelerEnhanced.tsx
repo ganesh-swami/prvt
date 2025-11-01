@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { FeatureGuard } from "@/components/common/FeatureGuard";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   setProjectId,
@@ -122,10 +123,10 @@ const tip = (title: string, body: string) => (
 );
 
 interface FinancialModelerProps {
-  projectId: string;
+  projectId?: string;
 }
 
-const FinancialModelerEnhanced: React.FC<FinancialModelerProps> = ({
+const FinancialModelerEnhancedContent: React.FC<FinancialModelerProps> = ({
   projectId,
 }) => {
   const dispatch = useAppDispatch();
@@ -968,6 +969,18 @@ const FinancialModelerEnhanced: React.FC<FinancialModelerProps> = ({
         </TabsContent>
       </Tabs>
     </div>
+  );
+};
+
+const FinancialModelerEnhanced: React.FC<FinancialModelerProps> = (props) => {
+  return (
+    <FeatureGuard
+      featureId="financial"
+      featureName="Financial Modeler"
+      description="Build comprehensive financial projections including revenue, expenses, and profitability forecasts"
+    >
+      <FinancialModelerEnhancedContent {...props} />
+    </FeatureGuard>
   );
 };
 

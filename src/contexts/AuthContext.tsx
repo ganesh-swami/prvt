@@ -155,7 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setLoading(true);
     try {
       const result = await database.signIn(email, password);
-      
+
       if (result?.session?.user) {
         // Manually set user and fetch data immediately
         setUser(result.session.user);
@@ -174,11 +174,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const result = await database.signUp(email, password, { name });
 
       if (result.user) {
+        console.log("User created:::::", result.user);
         // Create default organization
-        await database.createUserOrganization(
+        const res = await database.createUserOrganization(
           result.user.id,
           `${name}'s Organization`
         );
+
+        console.log("Org created:::::", res);
 
         // Manually set user and fetch data immediately
         setUser(result.user);

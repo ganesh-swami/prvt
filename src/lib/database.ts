@@ -158,14 +158,22 @@ export const database = {
 
     if (orgError) throw orgError;
 
+    console.log("Org created:", org);
+
     // Add user as owner
-    const { error: memberError } = await supabase.from("org_members").insert({
-      org_id: org.id,
-      user_id: userId,
-      role: "owner",
-    });
+    const { data: orgMember, error: memberError } = await supabase
+      .from("org_members")
+      .insert({
+        org_id: org.id,
+        user_id: userId,
+        role: "owner",
+      });
+
+    console.log("Member error:", memberError);
 
     if (memberError) throw memberError;
+
+    console.log("Member created:", orgMember);
 
     // Create subscription record
     const { error: subError } = await supabase.from("subscriptions").insert({

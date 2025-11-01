@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { FeatureGuard } from "../common/FeatureGuard";
 import {
   Card,
   CardContent,
@@ -79,7 +80,7 @@ interface InvestorRoomProps {
   projectId?: string | null;
 }
 
-export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
+const InvestorRoomContent: React.FC<InvestorRoomProps> = ({ projectId }) => {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
   const { summaries } = useModuleSummaries(projectId || undefined);
@@ -785,5 +786,17 @@ export const InvestorRoom: React.FC<InvestorRoomProps> = ({ projectId }) => {
         </TabsContent>
       </Tabs>
     </div>
+  );
+};
+
+export const InvestorRoom: React.FC<InvestorRoomProps> = (props) => {
+  return (
+    <FeatureGuard
+      featureId="investor-room"
+      featureName="Investor Room"
+      description="Create comprehensive investor presentations with financial summaries and pitch decks"
+    >
+      <InvestorRoomContent {...props} />
+    </FeatureGuard>
   );
 };

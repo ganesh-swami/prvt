@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Fragment } from "react";
+import { FeatureGuard } from "@/components/common/FeatureGuard";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchCompetitors,
@@ -63,7 +64,7 @@ interface CompetitorAnalysisProps {
   projectId: string;
 }
 
-export const CompetitorAnalysis: React.FC<CompetitorAnalysisProps> = ({
+const CompetitorAnalysisContent: React.FC<{ projectId?: string }> = ({
   projectId,
 }) => {
   const dispatch = useAppDispatch();
@@ -486,5 +487,17 @@ export const CompetitorAnalysis: React.FC<CompetitorAnalysisProps> = ({
         </TabsContent>
       </Tabs>
     </div>
+  );
+};
+
+export const CompetitorAnalysis: React.FC<{ projectId?: string }> = (props) => {
+  return (
+    <FeatureGuard
+      featureId="competitor-analysis"
+      featureName="Competitor Analysis"
+      description="Analyze your competitors' strengths, weaknesses, and market positioning"
+    >
+      <CompetitorAnalysisContent {...props} />
+    </FeatureGuard>
   );
 };

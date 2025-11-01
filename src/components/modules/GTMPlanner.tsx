@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { FeatureGuard } from '@/components/common/FeatureGuard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -36,7 +37,7 @@ interface GTMPlannerProps {
   projectId?: string;
 }
 
-export const GTMPlanner: React.FC<GTMPlannerProps> = ({ projectId }) => {
+const GTMPlannerContent: React.FC<GTMPlannerProps> = ({ projectId }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isExporting, setIsExporting] = useState(false);
   const dispatch = useAppDispatch();
@@ -308,5 +309,17 @@ export const GTMPlanner: React.FC<GTMPlannerProps> = ({ projectId }) => {
         </TabsContent>
       </Tabs>
     </div>
+  );
+};
+
+export const GTMPlanner: React.FC<GTMPlannerProps> = (props) => {
+  return (
+    <FeatureGuard
+      featureId="gtm"
+      featureName="GTM Planner"
+      description="Plan your go-to-market strategy with product roadmap, customer analysis, and launch goals"
+    >
+      <GTMPlannerContent {...props} />
+    </FeatureGuard>
   );
 };

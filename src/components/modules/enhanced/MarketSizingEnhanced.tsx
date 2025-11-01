@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { FeatureGuard } from "@/components/common/FeatureGuard";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   setMarketData,
@@ -60,8 +61,8 @@ interface MarketSizingEnhancedProps {
   projectId: string;
 }
 
-const MarketSizingEnhanced: React.FC<MarketSizingEnhancedProps> = ({
-  projectId,
+const MarketSizingEnhancedContent: React.FC<{ projectId?: string }> = ({
+  projectId: initialProjectId,
 }) => {
   const dispatch = useAppDispatch();
   const { toast: toastHook } = useToast();
@@ -78,13 +79,16 @@ const MarketSizingEnhanced: React.FC<MarketSizingEnhancedProps> = ({
   const error = useAppSelector(selectError);
   const lastSaved = useAppSelector(selectLastSaved);
 
+  // Use the actual projectId (either from props or stored)
+  const projectId = initialProjectId || storedProjectId;
+
   // Load data on mount
   useEffect(() => {
-    if (projectId && projectId !== storedProjectId) {
-      dispatch(setProjectId(projectId));
-      dispatch(loadLatestMarketSizing(projectId));
+    if (initialProjectId && initialProjectId !== storedProjectId) {
+      dispatch(setProjectId(initialProjectId));
+      dispatch(loadLatestMarketSizing(initialProjectId));
     }
-  }, [projectId, storedProjectId, dispatch]);
+  }, [initialProjectId, storedProjectId, dispatch]);
 
   // Show error toast
   useEffect(() => {
@@ -587,6 +591,18 @@ const MarketSizingEnhanced: React.FC<MarketSizingEnhancedProps> = ({
         </TabsContent>
       </Tabs>
     </div>
+  );
+};
+
+const MarketSizingEnhanced: React.FC<{ projectId?: string }> = (props) => {
+  return (
+    <FeatureGuard
+      featureId="market-sizing"
+      featureName="Market Sizing"
+      description="Analyze and calculate your total addressable market (TAM), serviceable addressable market (SAM), and serviceable obtainable market (SOM)"
+    >
+      <MarketSizingEnhancedContent {...props} />
+    </FeatureGuard>
   );
 };
 

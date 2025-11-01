@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { FeatureGuard } from "@/components/common/FeatureGuard";
 import { Button } from "@/components/ui/button";
 import { Plus, CheckCircle2, MessageSquare, Activity } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -37,7 +38,7 @@ interface TeamCollaborationEnhancedProps {
   projectId: string;
 }
 
-export function TeamCollaborationEnhanced({
+function TeamCollaborationEnhancedContent({
   projectId,
 }: TeamCollaborationEnhancedProps) {
   const dispatch = useAppDispatch();
@@ -394,5 +395,17 @@ export function TeamCollaborationEnhanced({
         )}
       </div>
     </div>
+  );
+}
+
+export function TeamCollaborationEnhanced(props: TeamCollaborationEnhancedProps) {
+  return (
+    <FeatureGuard
+      featureId="team-collaboration"
+      featureName="Team Collaboration"
+      description="Collaborate with your team through discussions, tasks, and activity tracking"
+    >
+      <TeamCollaborationEnhancedContent {...props} />
+    </FeatureGuard>
   );
 }

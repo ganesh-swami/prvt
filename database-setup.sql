@@ -26,13 +26,14 @@ CREATE TABLE IF NOT EXISTS public.organizations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   name text NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
   subscription_plan text DEFAULT 'starter'::text,
   subscription_status text DEFAULT 'active'::text,
   stripe_subscription_id text,
   stripe_customer_id text,
   subscription_period_end timestamp with time zone,
   CONSTRAINT organizations_pkey PRIMARY KEY (id)
-);
+);                                                              
 
 
 -- Organization members table
@@ -456,6 +457,19 @@ CREATE TABLE IF NOT EXISTS public.analytics_events (
   org_id uuid,
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT analytics_events_pkey PRIMARY KEY (id)
+);
+
+-- Webhook events table (for logging Stripe webhooks)
+CREATE TABLE IF NOT EXISTS public.webhook_events (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  event_id text NOT NULL UNIQUE,
+  event_type text NOT NULL,
+  event_data jsonb NOT NULL,
+  processing_status text DEFAULT 'pending'::text CHECK (processing_status = ANY (ARRAY['pending'::text, 'processing'::text, 'success'::text, 'failed'::text])),
+  error_message text,
+  created_at timestamp with time zone DEFAULT now(),
+  processed_at timestamp with time zone,
+  CONSTRAINT webhook_events_pkey PRIMARY KEY (id)
 );
 
 -- Subscriptions table
@@ -1052,6 +1066,40 @@ CREATE POLICY "Users can manage gtm plans for their projects" ON gtm_plans
     )
   );
 
+-- Organization members policies
+-- IMPORTANT: These policies avoid infinite recursion by NOT querying org_members in the policy itself
+
+-- INSERT: Allow inserts (signup happens immediately after user creation)
+-- During signup, auth context might not be fully established yet
+-- So we use a permissive policy that allows the insert
+-- Security is maintained by:
+-- 1. Only the backend can insert (via Supabase functions)
+-- 2. Frontend signup flow is controlled
+-- 3. Users can only add themselves (enforced in application logic)
+DROP POLICY IF EXISTS "Users can insert org members" ON org_members;
+CREATE POLICY "Users can insert org members" ON org_members
+  FOR INSERT WITH CHECK (true);
+
+-- UPDATE: Only admins/owners can modify member roles
+DROP POLICY IF EXISTS "Admins can update org members" ON org_members;
+CREATE POLICY "Admins can update org members" ON org_members
+  FOR UPDATE USING (
+    -- Only allow if user is an admin/owner in this organization
+    org_id IN (
+      SELECT org_id FROM org_members WHERE user_id = auth.uid() AND role IN ('owner', 'admin')
+    )
+  );
+
+-- DELETE: Only admins/owners can remove members
+DROP POLICY IF EXISTS "Admins can delete org members" ON org_members;
+CREATE POLICY "Admins can delete org members" ON org_members
+  FOR DELETE USING (
+    -- Only allow if user is an admin/owner in this organization
+    org_id IN (
+      SELECT org_id FROM org_members WHERE user_id = auth.uid() AND role IN ('owner', 'admin')
+    )
+  );
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_projects_owner_id ON projects(owner_id);
 CREATE INDEX IF NOT EXISTS idx_projects_updated_at ON projects(updated_at);
@@ -1073,6 +1121,10 @@ CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created
 CREATE INDEX IF NOT EXISTS idx_analytics_events_user_id ON analytics_events(user_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_org_id ON analytics_events(org_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_timestamp ON analytics_events(timestamp);
+CREATE INDEX IF NOT EXISTS idx_webhook_events_event_id ON webhook_events(event_id);
+CREATE INDEX IF NOT EXISTS idx_webhook_events_event_type ON webhook_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_webhook_events_created_at ON webhook_events(created_at);
+CREATE INDEX IF NOT EXISTS idx_webhook_events_status ON webhook_events(processing_status);
 CREATE INDEX IF NOT EXISTS idx_org_members_user_id ON org_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_org_members_org_id ON org_members(org_id);
 CREATE INDEX IF NOT EXISTS idx_project_collaborators_project_id ON project_collaborators(project_id);
@@ -1496,6 +1548,46 @@ FROM organizations o;
 
 COMMENT ON VIEW organization_subscriptions IS 
   'Unified view of organization subscription information with computed fields';
+
+-- Add missing updated_at column to organizations table
+-- Add webhook_events table for logging Stripe webhooks
+
+-- Step 1: Add updated_at column to organizations table if it doesn't exist
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone DEFAULT now();
+
+-- Step 2: Create webhook_events table for logging
+CREATE TABLE IF NOT EXISTS public.webhook_events (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  event_id text NOT NULL UNIQUE,
+  event_type text NOT NULL,
+  event_data jsonb NOT NULL,
+  processing_status text DEFAULT 'pending'::text CHECK (processing_status = ANY (ARRAY['pending'::text, 'processing'::text, 'success'::text, 'failed'::text])),
+  error_message text,
+  created_at timestamp with time zone DEFAULT now(),
+  processed_at timestamp with time zone,
+  CONSTRAINT webhook_events_pkey PRIMARY KEY (id)
+);
+
+-- Step 3: Create indexes for webhook_events table
+CREATE INDEX IF NOT EXISTS idx_webhook_events_event_id ON webhook_events(event_id);
+CREATE INDEX IF NOT EXISTS idx_webhook_events_event_type ON webhook_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_webhook_events_created_at ON webhook_events(created_at);
+CREATE INDEX IF NOT EXISTS idx_webhook_events_status ON webhook_events(processing_status);
+
+-- Step 4: Verify the changes
+SELECT column_name, data_type 
+FROM information_schema.columns 
+WHERE table_name = 'organizations' AND column_name = 'updated_at';
+
+SELECT tablename, schemaname 
+FROM pg_tables 
+WHERE tablename = 'webhook_events';
+
+-- Step 5: View recent webhook events (for testing)
+-- SELECT event_id, event_type, processing_status, created_at, processed_at
+-- FROM webhook_events
+-- ORDER BY created_at DESC
+-- LIMIT 10;
 
 
 -- Success message

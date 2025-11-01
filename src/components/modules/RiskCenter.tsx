@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { FeatureGuard } from "@/components/common/FeatureGuard";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchRisks,
@@ -50,10 +51,10 @@ interface Risk {
 }
 
 interface RiskCenterProps {
-  projectId: string;
+  projectId?: string;
 }
 
-const RiskCenter: React.FC<RiskCenterProps> = ({ projectId }) => {
+const RiskCenterContent: React.FC<RiskCenterProps> = ({ projectId }) => {
   const dispatch = useAppDispatch();
 
   // Redux state
@@ -797,6 +798,18 @@ const RiskCenter: React.FC<RiskCenterProps> = ({ projectId }) => {
         </TabsContent>
       </Tabs>
     </div>
+  );
+};
+
+const RiskCenter: React.FC<{ projectId?: string }> = (props) => {
+  return (
+    <FeatureGuard
+      featureId="risk-center"
+      featureName="Risk Center"
+      description="Identify, assess, and track risks to your business with mitigation strategies"
+    >
+      <RiskCenterContent {...props} />
+    </FeatureGuard>
   );
 };
 
