@@ -5,8 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail, Lock, User } from "lucide-react";
+import { toast } from "sonner";
 
-export const SignUpForm: React.FC = () => {
+interface SignUpFormProps {
+  onSuccess?: () => void;
+}
+
+export const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess }) => {
   const { signUp } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -22,37 +27,49 @@ export const SignUpForm: React.FC = () => {
     setError("");
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      const errorMsg = "Passwords do not match";
+      setError(errorMsg);
+      toast.error(errorMsg);
       setLoading(false);
       return;
     }
 
     if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+      const errorMsg = "Password must be at least 6 characters";
+      setError(errorMsg);
+      toast.error(errorMsg);
       setLoading(false);
       return;
     }
 
     try {
-      await signUp(email, password, name);
+      const user = await signUp(email, password, name);
+      console.log("user@@@@@@ ", user);
       setSuccess(true);
+      toast.success(
+        "Account created successfully! Please check your email to verify your account."
+      );
+      onSuccess?.();
     } catch (err: any) {
-      setError(err.message || "Failed to create account");
+      console.error("err@@@@@@ ", err);
+      const errorMsg = "Failed to create account";
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
-  if (success) {
-    return (
-      <Alert className="border-green-200 bg-green-50">
-        <AlertDescription className="text-green-800">
-          Account created successfully! Please check your email to verify your
-          account.
-        </AlertDescription>
-      </Alert>
-    );
-  }
+  // if (success) {
+  //   return (
+  //     <Alert className="border-green-200 bg-green-50">
+  //       <AlertDescription className="text-green-800">
+  //         Account created successfully! Please check your email to verify your
+  //         account.
+  //       </AlertDescription>
+  //     </Alert>
+  //   );
+  // }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -131,6 +148,15 @@ export const SignUpForm: React.FC = () => {
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {success && (
+        <Alert className="border-green-200 bg-green-50">
+          <AlertDescription className="text-green-800">
+            Account created successfully! Please check your email to verify your
+            account.
+          </AlertDescription>
         </Alert>
       )}
 

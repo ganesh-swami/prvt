@@ -169,39 +169,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const signUp = async (email: string, password: string, name: string) => {
-    setLoading(true);
+    // Don't set global loading - use form's local loading state
+    // setLoading(true) would unmount AuthLayout and show global loader
     try {
       const result = await database.signUp(email, password, { name });
 
       if (result.user) {
         console.log("User created:::::", result.user);
-        // Create default organization
-        const res = await database.createUserOrganization(
-          result.user.id,
-          `${name}'s Organization`
-        );
+        
+        try {
+          // Create default organization - this must succeed before setting user
+          const res = await database.createUserOrganization(
+            result.user.id,
+            `${name}'s Organization`
+          );
 
-        console.log("Org created:::::", res);
+          console.log("Org created:::::", res);
 
-        // Manually set user and fetch data immediately
-        setUser(result.user);
-        await fetchAppUser(result.user.id);
+          // Track signup event (non-blocking)
+          (async () => {
+            try {
+              await analyticsApi.trackEvent({
+                event_name: "user_signup",
+                user_id: result.user.id,
+                properties: { method: "email" },
+              });
+            } catch (e) {
+              console.error("Analytics trackEvent failed:", e);
+            }
+          })();
 
-        // Track signup event (non-blocking)
-        (async () => {
-          try {
-            await analyticsApi.trackEvent({
-              event_name: "user_signup",
-              user_id: result.user.id,
-              properties: { method: "email" },
-            });
-          } catch (e) {
-            console.error("Analytics trackEvent failed:", e);
-          }
-        })();
+          // IMPORTANT: Sign out immediately after signup to require email verification
+          // Supabase auto-logs in users, but we want them to verify email first
+          console.log("Signup successful, signing out to require email verification");
+          await database.signOut().catch((e) => {
+            console.warn("Failed to sign out after signup:", e);
+          });
+          
+          // Ensure user state is cleared
+          setUser(null);
+          setAppUser(null);
+          setCurrentOrganization(null);
+          setOrganizations([]);
+
+          // Success - user will see the success message in SignUpForm
+          
+        } catch (orgError) {
+          // Organization creation failed - sign out the user to prevent auto-login
+          console.error("Organization creation failed, signing out user:", orgError);
+          await database.signOut().catch((e) => {
+            console.error("Failed to sign out after org error:", e);
+          });
+          setUser(null);
+          setAppUser(null);
+          setCurrentOrganization(null);
+          setOrganizations([]);
+          throw orgError;
+        }
       }
     } catch (error) {
-      setLoading(false);
+      // CRITICAL: Don't set user on error - keep them on the signup form
+      console.error("Signup error:", error);
       throw error;
     }
   };

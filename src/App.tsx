@@ -12,6 +12,7 @@ import { SubscriptionLoader } from "@/components/billing/SubscriptionLoader";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
 import PaymentSuccess from "@/pages/PaymentSuccess";
+import AuthCallback from "@/pages/AuthCallback";
 import "./App.css";
 
 const queryClient = new QueryClient();
@@ -29,10 +30,12 @@ function App() {
                 <Router>
                   <Routes>
                     <Route path="/" element={<Index />} />
+                    <Route path="/auth/callback" element={<AuthCallback />} />
                     <Route
                       path="/payment-status"
                       element={<PaymentSuccess />}
                     />
+                    <Route path="/dashboard" element={<PaymentSuccess />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Router>

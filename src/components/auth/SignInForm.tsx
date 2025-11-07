@@ -21,9 +21,11 @@ export const SignInForm: React.FC = () => {
 
     try {
       await signIn(email, password);
+      toast.success("Signed in successfully!");
     } catch (err: any) {
-      setError(err.message || "Failed to sign in");
-      toast.error(err.message || "Failed to sign in");
+      const errorMsg = err.message || "Failed to sign in";
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }

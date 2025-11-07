@@ -1583,6 +1583,66 @@ SELECT tablename, schemaname
 FROM pg_tables 
 WHERE tablename = 'webhook_events';
 
+
+-- Fix: Subscription RLS Policy for Signup
+-- This fixes the "new row violates row-level security policy" error during signup
+
+-- First, enable RLS on subscriptions if not already enabled
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies
+DROP POLICY IF EXISTS "Users can view subscriptions for their organizations" ON subscriptions;
+DROP POLICY IF EXISTS "Organization owners can manage subscriptions" ON subscriptions;
+DROP POLICY IF EXISTS "Allow subscription insert during organization creation" ON subscriptions;
+
+-- Policy 1: Users can view subscriptions for their organizations
+CREATE POLICY "Users can view subscriptions for their organizations" 
+ON subscriptions FOR SELECT 
+USING (
+  org_id IN (
+    SELECT org_id FROM org_members WHERE user_id = auth.uid()
+  )
+);
+
+-- Policy 2: Allow INSERT for new organizations being created
+-- This allows creating subscriptions when the organization is being set up
+-- The unique constraint on org_id prevents duplicate subscriptions
+CREATE POLICY "Allow subscription insert during organization creation" 
+ON subscriptions FOR INSERT 
+WITH CHECK (
+  -- Allow if the org was just created (within last 5 minutes)
+  EXISTS (
+    SELECT 1 FROM organizations 
+    WHERE organizations.id = org_id 
+    AND organizations.created_at > NOW() - INTERVAL '5 minutes'
+  )
+);
+
+-- Policy 3: Organization owners can update/delete subscriptions
+CREATE POLICY "Organization owners can manage subscriptions" 
+ON subscriptions FOR UPDATE 
+USING (
+  org_id IN (
+    SELECT org_id FROM org_members 
+    WHERE user_id = auth.uid() AND role = 'owner'
+  )
+);
+
+CREATE POLICY "Organization owners can delete subscriptions" 
+ON subscriptions FOR DELETE 
+USING (
+  org_id IN (
+    SELECT org_id FROM org_members 
+    WHERE user_id = auth.uid() AND role = 'owner'
+  )
+);
+
+-- Verify the policies
+SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual
+FROM pg_policies 
+WHERE tablename = 'subscriptions';
+
+
 -- Step 5: View recent webhook events (for testing)
 -- SELECT event_id, event_type, processing_status, created_at, processed_at
 -- FROM webhook_events
