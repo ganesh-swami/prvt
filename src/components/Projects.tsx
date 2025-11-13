@@ -16,6 +16,7 @@ import {
   setCurrentProject,
   clearError,
 } from "@/store/slices/projectsSlice";
+import { selectCurrentOrgSubscription } from "@/store/slices/subscriptionSlice";
 import type { Project } from "@/types";
 import {
   Card,
@@ -50,6 +51,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAppContext } from "@/contexts/AppContext";
+import pricingData from "@/../public/pricing.json";
 
 const Projects: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -60,6 +63,8 @@ const Projects: React.FC = () => {
   const error = useAppSelector(selectProjectsError);
   const currentUser = useAppSelector(selectCurrentUser);
   const currentProject = useAppSelector(selectCurrentProject);
+  const orgSubscription = useAppSelector(selectCurrentOrgSubscription);
+  const { setCurrentModule } = useAppContext();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -69,6 +74,15 @@ const Projects: React.FC = () => {
     description: "",
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Get current plan and project limit
+  const currentPlan = orgSubscription?.subscription_plan || "starter";
+  const planData = pricingData.plans[currentPlan as keyof typeof pricingData.plans];
+  const projectsMaxLimit = planData?.limits?.projects_max;
+  const isUnlimited = projectsMaxLimit === "unlimited";
+  const projectLimit = isUnlimited ? Infinity : (projectsMaxLimit as number);
+  const projectCount = activeProjects.length;
+  const canCreateProject = isUnlimited || projectCount < projectLimit;
 
   useEffect(() => {
     // Fetch current user first
@@ -299,15 +313,21 @@ const Projects: React.FC = () => {
           <h1 className="text-2xl sm:text-3xl font-bold">Projects</h1>
           <p className="text-muted-foreground mt-1">
             Manage all your strategic planning projects
+            {!isUnlimited && (
+              <span className="ml-2 text-sm">
+                ({projectCount}/{projectLimit})
+              </span>
+            )}
           </p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              New Project
-            </Button>
-          </DialogTrigger>
+        {canCreateProject ? (
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                New Project
+              </Button>
+            </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Create New Project</DialogTitle>
@@ -366,7 +386,16 @@ const Projects: React.FC = () => {
               </Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        ) : (
+          <Button
+            onClick={() => setCurrentModule("pricing-module")}
+            className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Upgrade to Create More Projects
+          </Button>
+        )}
       </div>
 
       {/* Edit Dialog */}

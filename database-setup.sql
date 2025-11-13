@@ -1,4 +1,4 @@
--- Database Setup Script for PF_Strategize+
+-- Database Setup Script for Strategize+
 -- Run this in your Supabase SQL editor to set up the complete database schema
 
 -- Enable necessary extensions
@@ -1165,7 +1165,7 @@ BEGIN
   INSERT INTO public.projects (name, description, owner_id, status)
   VALUES (
     'My First Project',
-    'Welcome to PF_Strategize! This is your default project to get started.',
+    'Welcome to Strategize+! This is your default project to get started.',
     NEW.id,
     'active'
   )

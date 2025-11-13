@@ -36,8 +36,6 @@ export function PricingModule() {
   const [loading, setLoading] = useState(false);
   const { user, appUser, currentOrganization } = useAuth();
   const orgSubscription = useAppSelector(selectCurrentOrgSubscription);
-  const { toast } = useToast();
-
   // Get current plan from Redux subscription state
   const currentPlan = orgSubscription?.subscription_plan || "starter";
   const subscription = {
@@ -92,6 +90,8 @@ export function PricingModule() {
         {
           body: {
             priceId,
+            planKey,
+            billingCycle,
             userEmail: user.email,
             userId: user.id,
             orgId: currentOrganization?.id,

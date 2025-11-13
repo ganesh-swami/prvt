@@ -1,4 +1,4 @@
-// Database Schema Types for PF_Strategize+
+// Database Schema Types for Strategize+
 
 export interface User {
   id: string;
@@ -119,14 +119,14 @@ export interface Stakeholder {
   project_id: string;
   name: string;
   type?: string;
-  influence?: 'High' | 'Medium' | 'Low';
-  interest?: 'High' | 'Medium' | 'Low';
-  relationship?: 'Supportive' | 'Neutral' | 'Opposing';
+  influence?: "High" | "Medium" | "Low";
+  interest?: "High" | "Medium" | "Low";
+  relationship?: "Supportive" | "Neutral" | "Opposing";
   relationship_strength?: number; // 1-10
-  engagement_level?: 'Active' | 'Moderate' | 'Minimal' | 'None';
+  engagement_level?: "Active" | "Moderate" | "Minimal" | "None";
   last_contact?: string;
   next_action?: string;
-  risk_level?: 'High' | 'Medium' | 'Low';
+  risk_level?: "High" | "Medium" | "Low";
   description?: string;
   contact_info?: string;
   created_at: string;
@@ -138,9 +138,9 @@ export interface EcosystemMapTimeline {
   project_id: string;
   stakeholder_id: string;
   date: string;
-  type?: 'Meeting' | 'Email' | 'Call' | 'Event' | 'Milestone';
+  type?: "Meeting" | "Email" | "Call" | "Event" | "Milestone";
   description: string;
-  outcome?: 'Positive' | 'Neutral' | 'Negative';
+  outcome?: "Positive" | "Neutral" | "Negative";
   relationship_change?: number; // -5 to +5
   created_by?: string;
   created_at: string;
@@ -163,12 +163,12 @@ export interface EcosystemMapTask {
   id: string;
   project_id: string;
   stakeholder_id: string;
-  type?: 'follow-up' | 'meeting' | 'check-in' | 'deadline';
+  type?: "follow-up" | "meeting" | "check-in" | "deadline";
   title: string;
   description?: string;
   due_date: string;
-  frequency?: 'once' | 'weekly' | 'monthly' | 'quarterly';
-  priority?: 'high' | 'medium' | 'low';
+  frequency?: "once" | "weekly" | "monthly" | "quarterly";
+  priority?: "high" | "medium" | "low";
   is_active: boolean;
   is_completed: boolean;
   completed_at?: string;
@@ -271,7 +271,7 @@ export interface Risk {
   impact: number;
   owner?: string;
   mitigation_strategy?: string;
-  status: 'Active' | 'Resolved' | 'Mitigated' | 'Monitoring';
+  status: "Active" | "Resolved" | "Mitigated" | "Monitoring";
   created_at: string;
   updated_at: string;
 }
@@ -423,8 +423,8 @@ export interface TeamTask {
   project_id: string;
   title: string;
   description?: string;
-  status: 'todo' | 'in_progress' | 'completed';
-  priority: 'low' | 'medium' | 'high';
+  status: "todo" | "in_progress" | "completed";
+  priority: "low" | "medium" | "high";
   due_date?: string;
   assigned_to?: string;
   created_by: string;
@@ -438,9 +438,14 @@ export interface TeamTask {
 export interface TeamActivity {
   id: string;
   project_id: string;
-  activity_type: 'task_created' | 'task_completed' | 'task_updated' | 'discussion_created' | 'comment_created';
+  activity_type:
+    | "task_created"
+    | "task_completed"
+    | "task_updated"
+    | "discussion_created"
+    | "comment_created";
   entity_id: string;
-  entity_type: 'task' | 'discussion' | 'comment';
+  entity_type: "task" | "discussion" | "comment";
   user_id: string;
   metadata?: Record<string, any>;
   created_at: string;
@@ -454,7 +459,7 @@ export interface Milestone {
   title: string;
   description?: string;
   target_date: string;
-  status: 'pending' | 'in-progress' | 'completed';
+  status: "pending" | "in-progress" | "completed";
   progress: number; // 0-100
   created_at: string;
   updated_at: string;

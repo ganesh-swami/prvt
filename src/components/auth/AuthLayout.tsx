@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { SignInForm } from "./SignInForm";
 import { SignUpForm } from "./SignUpForm";
+import { ForgotPasswordForm } from "./ForgotPasswordForm";
+import { ResetPasswordForm } from "./ResetPasswordForm";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -8,23 +10,53 @@ interface AuthLayoutProps {
   onSignUpSuccess?: () => void;
 }
 
+type AuthMode = "signin" | "signup" | "forgot-password" | "reset-password";
+
 export const AuthLayout: React.FC<AuthLayoutProps> = ({ onSignUpSuccess }) => {
   // Persist form state in sessionStorage to prevent loss on remount
-  const [isSignUp, setIsSignUp] = useState(() => {
-    const saved = sessionStorage.getItem('authFormMode');
-    return saved === 'signup';
+  const [authMode, setAuthMode] = useState<AuthMode>(() => {
+    const saved = sessionStorage.getItem("authFormMode");
+    if (saved === "signup") return "signup";
+    return "signin";
   });
   const [signUpSuccess, setSignUpSuccess] = useState(false);
+  const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
 
-  const handleToggle = (newMode: boolean) => {
-    setIsSignUp(newMode);
-    sessionStorage.setItem('authFormMode', newMode ? 'signup' : 'signin');
+  // Check if user is in password reset flow (has access_token in URL)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes("access_token") && hash.includes("type=recovery")) {
+      setIsResetPasswordMode(true);
+      setAuthMode("reset-password");
+    }
+  }, []);
+
+  const handleToggle = (newMode: AuthMode) => {
+    setAuthMode(newMode);
+    if (newMode === "signup") {
+      sessionStorage.setItem("authFormMode", "signup");
+    } else if (newMode === "signin") {
+      sessionStorage.setItem("authFormMode", "signin");
+    }
   };
 
   const handleSignUpSuccess = () => {
     setSignUpSuccess(true);
     // Clear the saved form mode on successful signup
-    sessionStorage.removeItem('authFormMode');
+    sessionStorage.removeItem("authFormMode");
+  };
+
+  const handleForgotPassword = () => {
+    setAuthMode("forgot-password");
+  };
+
+  const handleBackToSignIn = () => {
+    setAuthMode("signin");
+  };
+
+  const handleResetPasswordSuccess = () => {
+    setAuthMode("signin");
+    setIsResetPasswordMode(false);
   };
 
   return (
@@ -41,26 +73,52 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ onSignUpSuccess }) => {
 
         <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
           <CardContent className="p-6">
-            {isSignUp ? (
+            {authMode === "signin" && (
+              <SignInForm onForgotPassword={handleForgotPassword} />
+            )}
+            {authMode === "signup" && (
               <SignUpForm onSuccess={handleSignUpSuccess} />
-            ) : (
-              <SignInForm />
+            )}
+            {authMode === "forgot-password" && (
+              <ForgotPasswordForm onBack={handleBackToSignIn} />
+            )}
+            {authMode === "reset-password" && (
+              <ResetPasswordForm
+                onSuccess={handleResetPasswordSuccess}
+                onBack={handleBackToSignIn}
+              />
             )}
 
-            {!signUpSuccess && (
+            {!signUpSuccess && authMode !== "reset-password" && (
               <div className="mt-6 text-center">
-                <p className="text-sm text-gray-600">
-                  {isSignUp
-                    ? "Already have an account?"
-                    : "Don't have an account?"}
-                </p>
-                <Button
-                  variant="link"
-                  onClick={() => handleToggle(!isSignUp)}
-                  className="text-blue-600 hover:text-blue-800 p-0 h-auto font-medium"
-                >
-                  {isSignUp ? "Sign In" : "Sign Up"}
-                </Button>
+                {authMode === "signin" && (
+                  <>
+                    <p className="text-sm text-gray-600">
+                      Don't have an account?
+                    </p>
+                    <Button
+                      variant="link"
+                      onClick={() => handleToggle("signup")}
+                      className="text-blue-600 hover:text-blue-800 p-0 h-auto font-medium"
+                    >
+                      Sign Up
+                    </Button>
+                  </>
+                )}
+                {authMode === "signup" && (
+                  <>
+                    <p className="text-sm text-gray-600">
+                      Already have an account?
+                    </p>
+                    <Button
+                      variant="link"
+                      onClick={() => handleToggle("signin")}
+                      className="text-blue-600 hover:text-blue-800 p-0 h-auto font-medium"
+                    >
+                      Sign In
+                    </Button>
+                  </>
+                )}
               </div>
             )}
           </CardContent>

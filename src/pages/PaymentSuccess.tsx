@@ -77,8 +77,8 @@ export default function PaymentSuccess() {
               <h4 className="font-medium text-sm">What's next?</h4>
               <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                 <li>Access all premium features</li>
-                <li>Create unlimited projects</li>
-                <li>Export your data in multiple formats</li>
+                <li>Create more projects</li>
+                <li>Export your data</li>
                 <li>Get priority support</li>
               </ul>
             </div>

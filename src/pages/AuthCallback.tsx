@@ -3,10 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
 
 const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
-  const [status, setStatus] = useState<"loading" | "success" | "error">(
+  const [status, setStatus] = useState<"loading" | "success" | "error" | "recovery">(
     "loading"
   );
   const [message, setMessage] = useState("Verifying your email...");
@@ -19,27 +20,51 @@ const AuthCallback: React.FC = () => {
           window.location.hash.substring(1)
         );
         const accessToken = hashParams.get("access_token");
+        const refreshToken = hashParams.get("refresh_token");
         const type = hashParams.get("type");
 
-        console.log("Auth callback - Type:", type, "Has access_token:", !!accessToken);
+        console.log(
+          "Auth callback - Type:",
+          type,
+          "Has access_token:",
+          !!accessToken
+        );
 
         // After Supabase verifies the email link, it redirects here with:
         // - access_token (session token)
-        // - type=signup
+        // - type=signup (for email verification) or type=recovery (for password reset)
         // The verification already happened server-side
         if (accessToken && (type === "signup" || type === "recovery")) {
-          // Email is already verified by Supabase
-          // Session is automatically created by Supabase
-          setStatus("success");
-          setMessage("✅ Email verified successfully! You can now sign in.");
+          if (type === "recovery") {
+            // Password recovery flow - establish session from tokens first
+            console.log(
+              "Password recovery verified, establishing session..."
+            );
+            
+            // Manually set the session from the tokens since detectSessionInUrl is false
+            if (refreshToken) {
+              await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken,
+              });
+              console.log("Session established from tokens");
+            }
+            
+            setStatus("recovery");
+            return;
+          } else {
+            // Email verification flow (signup)
+            setStatus("success");
+            setMessage("✅ Email verified successfully! You can now sign in.");
 
-          // Sign out immediately so user must sign in manually
-          console.log("Email verified, signing out user...");
-          await supabase.auth.signOut().catch((e) => {
-            console.warn("Sign out error:", e);
-          });
+            // Sign out immediately so user must sign in manually
+            console.log("Email verified, signing out user...");
+            await supabase.auth.signOut().catch((e) => {
+              console.warn("Sign out error:", e);
+            });
 
-          console.log("User signed out, ready to sign in");
+            console.log("User signed out, ready to sign in");
+          }
         } else {
           // No valid tokens in URL - invalid or expired link
           setStatus("error");
@@ -51,7 +76,11 @@ const AuthCallback: React.FC = () => {
       } catch (error) {
         console.error("Unexpected error during email verification:", error);
         setStatus("error");
-        setMessage(`❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+        setMessage(
+          `❌ Error: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
       }
     };
 
@@ -67,11 +96,28 @@ const AuthCallback: React.FC = () => {
           </h1>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-xl p-8 text-center">
+        <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-xl p-8">
+          {status === "recovery" && (
+            <div>
+              <h2 className="text-2xl font-bold text-center mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Reset Your Password
+              </h2>
+              <ResetPasswordForm
+                onSuccess={() => {
+                  sessionStorage.setItem("authFormMode", "signin");
+                  window.location.href = "/";
+                }}
+                onBack={() => {
+                  window.location.href = "/";
+                }}
+              />
+            </div>
+          )}
+
           {status === "loading" && (
             <>
               <Loader2 className="h-12 w-12 animate-spin mx-auto text-blue-600 mb-4" />
-              <p className="text-gray-700 font-medium">{message}</p>
+              <p className="text-gray-700 font-medium text-center">{message}</p>
             </>
           )}
 
@@ -85,7 +131,8 @@ const AuthCallback: React.FC = () => {
               </Alert>
               <div className="space-y-3 mt-6">
                 <p className="text-sm text-gray-600">
-                  Your email has been verified. You can now sign in with your credentials.
+                  Your email has been verified. You can now sign in with your
+                  credentials.
                 </p>
                 <button
                   onClick={() => {
@@ -104,11 +151,13 @@ const AuthCallback: React.FC = () => {
             <>
               <XCircle className="h-12 w-12 mx-auto text-red-600 mb-4" />
               <Alert variant="destructive" className="mb-4">
-                <AlertDescription className="font-medium">{message}</AlertDescription>
+                <AlertDescription className="font-medium">
+                  {message}
+                </AlertDescription>
               </Alert>
               <div className="space-y-3 mt-6">
                 <p className="text-sm text-gray-600">
-                  Please try signing up again or contact support if the issue persists.
+                  Please try again or contact support if the issue persists.
                 </p>
                 <button
                   onClick={() => {

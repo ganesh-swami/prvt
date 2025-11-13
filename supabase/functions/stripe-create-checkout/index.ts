@@ -13,12 +13,13 @@ serve(async (req) => {
   }
 
   try {
-    const { priceId, userEmail, userId, orgId } = await req.json();
+    const { priceId, planKey, billingCycle, userEmail, userId, orgId } =
+      await req.json();
 
-    if (!priceId || !userEmail || !userId) {
+    if (!priceId || !userEmail || !userId || !planKey) {
       return new Response(
         JSON.stringify({
-          error: "Missing required parameters: priceId, userEmail, userId",
+          error: "Missing required parameters: priceId, userEmail, userId, planKey",
         }),
         {
           status: 400,
@@ -39,6 +40,8 @@ serve(async (req) => {
 
     console.log("Creating checkout session for:", {
       priceId,
+      planKey,
+      billingCycle,
       userEmail,
       userId,
       orgId,
@@ -58,20 +61,26 @@ serve(async (req) => {
       ],
       mode: "subscription",
       success_url: `${origin}/payment-status?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/pricing?canceled=true`,
+      cancel_url: `${origin}/payment-status?success=true&session_id={CHECKOUT_SESSION_ID}`,
       customer_email: userEmail,
       client_reference_id: orgId || userId,
       metadata: {
         userId,
         orgId: orgId || "",
+        plan: planKey,
+        billingCycle: billingCycle || "monthly",
       },
       subscription_data: {
         metadata: {
           userId,
           orgId: orgId || "",
+          plan: planKey,
+          billingCycle: billingCycle || "monthly",
         },
       },
     });
+
+    console.log("Checkout session created:", session);
 
     console.log("Checkout session created:", session.id);
 

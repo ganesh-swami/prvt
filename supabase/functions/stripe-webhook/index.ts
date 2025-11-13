@@ -1,3 +1,4 @@
+// to deploy use ::: npx supabase functions deploy stripe-webhook --no-verify-jwt
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.5.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -73,169 +74,29 @@ serve(async (req) => {
     try {
       // Handle events
       switch (event.type) {
-      case "checkout.session.completed": {
-        const session = event.data.object as Stripe.Checkout.Session;
-        console.log("Checkout completed:", session.id);
+        case "checkout.session.completed": {
+          const session = event.data.object as Stripe.Checkout.Session;
+          console.log("Checkout completed:", session.id);
 
-        // Get subscription details
-        const subscription = await stripe.subscriptions.retrieve(
-          session.subscription as string
-        );
+          // Get subscription details
+          const subscription = await stripe.subscriptions.retrieve(
+            session.subscription as string
+          );
 
-        // Determine plan from price ID or metadata
-        const priceId = subscription.items.data[0].price.id;
-        const planName =
-          subscription.items.data[0].price.metadata.plan ||
-          determinePlanFromPrice(priceId);
-        const billingCycle =
-          subscription.items.data[0].price.recurring?.interval || "month";
+          console.log("Checkout completed subscription:", subscription);
 
-        // Get customer email
-        const customerEmail =
-          session.customer_email || session.customer_details?.email;
-
-        // Calculate subscription dates
-        const subscriptionStartDate = new Date(
-          subscription.current_period_start * 1000
-        );
-        const subscriptionEndDate = new Date(
-          subscription.current_period_end * 1000
-        );
-        const trialEndDate = subscription.trial_end
-          ? new Date(subscription.trial_end * 1000)
-          : null;
-        const cancelAtDate = subscription.cancel_at
-          ? new Date(subscription.cancel_at * 1000)
-          : null;
-
-        console.log("Subscription created:", {
-          subscriptionId: subscription.id,
-          customerId: session.customer,
-          plan: planName,
-          billingCycle,
-          email: customerEmail,
-          startDate: subscriptionStartDate,
-          endDate: subscriptionEndDate,
-        });
-
-        // Find user by email
-        const { data: userData, error: userError } = await supabase
-          .from("users")
-          .select("id")
-          .eq("email", customerEmail)
-          .single();
-
-        if (userError || !userData) {
-          console.error("User not found for email:", customerEmail);
-          break;
-        }
-
-        const userId = userData.id;
-
-        // Strategy: Find or update existing organization
-        // 1. Try to find by stripe_customer_id (existing subscription)
-        // 2. If not found, find user's organization via org_members
-        // 3. Update that organization with stripe details
-        // 4. Only create new org if user has NO organization
-
-        let orgId: string;
-        let existingOrg = null;
-
-        // First, try to find by stripe customer ID
-        const { data: orgByStripe } = await supabase
-          .from("organizations")
-          .select("id")
-          .eq("stripe_customer_id", session.customer)
-          .single();
-
-        if (orgByStripe) {
-          existingOrg = orgByStripe;
-        } else {
-          // Try to find user's existing organization via org_members
-          const { data: userOrgData } = await supabase
-            .from("org_members")
-            .select("org_id, organizations!inner(id, name)")
-            .eq("user_id", userId)
-            .eq("role", "owner")
-            .single();
-
-          if (userOrgData) {
-            existingOrg = { id: userOrgData.org_id };
-          }
-        }
-
-        if (existingOrg) {
-          // Update existing organization with subscription details
-          orgId = existingOrg.id;
-
-          const { error: updateError } = await supabase
-            .from("organizations")
-            .update({
-              subscription_plan: planName,
-              subscription_status: subscription.status,
-              stripe_customer_id: session.customer as string,
-              stripe_subscription_id: subscription.id,
-              subscription_period_end: subscriptionEndDate,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", orgId);
-
-          if (updateError) {
-            console.error("Error updating organization:", updateError);
-          } else {
-            console.log("Updated existing organization:", orgId);
-          }
-        } else {
-          // User has no organization - create new one (invited users case)
-          const { data: newOrg, error: createError } = await supabase
-            .from("organizations")
-            .insert({
-              name: `${customerEmail}'s Organization`,
-              subscription_plan: planName,
-              subscription_status: subscription.status,
-              stripe_customer_id: session.customer as string,
-              stripe_subscription_id: subscription.id,
-              subscription_period_end: subscriptionEndDate,
-            })
-            .select("id")
-            .single();
-
-          if (createError) {
-            console.error("Error creating organization:", createError);
-            break;
-          }
-
-          orgId = newOrg.id;
-
-          // Add user as owner
-          await supabase.from("org_members").insert({
-            org_id: orgId,
-            user_id: userId,
-            role: "owner",
-          });
-
-          console.log("Created new organization for invited user:", orgId);
-        }
-
-        break;
-      }
-
-      case "customer.subscription.updated": {
-        const subscription = event.data.object as Stripe.Subscription;
-        console.log("Subscription updated:", subscription.id);
-
-        const { data: org } = await supabase
-          .from("organizations")
-          .select("id")
-          .eq("stripe_subscription_id", subscription.id)
-          .single();
-
-        if (org) {
+          // Determine plan from metadata (subscription or price) or fallback to price ID
+          const priceId = subscription.items.data[0].price.id;
           const planName =
-            subscription.items.data[0].price.metadata.plan ||
-            determinePlanFromPrice(subscription.items.data[0].price.id);
+            subscription.metadata?.plan || determinePlanFromPrice(priceId);
           const billingCycle =
-            subscription.items.data[0].price.recurring?.interval || "month";
+            subscription.items.data[0].price.recurring?.interval ||
+            subscription.metadata?.billingCycle ||
+            "month";
+
+          // Get customer email
+          const customerEmail =
+            session.customer_email || session.customer_details?.email;
 
           // Calculate subscription dates
           const subscriptionStartDate = new Date(
@@ -244,92 +105,284 @@ serve(async (req) => {
           const subscriptionEndDate = new Date(
             subscription.current_period_end * 1000
           );
+          const trialEndDate = subscription.trial_end
+            ? new Date(subscription.trial_end * 1000)
+            : null;
           const cancelAtDate = subscription.cancel_at
             ? new Date(subscription.cancel_at * 1000)
             : null;
 
-          await supabase
+          console.log("Subscription created:", {
+            subscriptionId: subscription.id,
+            customerId: session.customer,
+            plan: planName,
+            billingCycle,
+            email: customerEmail,
+            startDate: subscriptionStartDate,
+            endDate: subscriptionEndDate,
+          });
+
+          // Find user by email
+          const { data: userData, error: userError } = await supabase
+            .from("users")
+            .select("id")
+            .eq("email", customerEmail)
+            .single();
+
+          if (userError || !userData) {
+            console.error("User not found for email:", customerEmail);
+            break;
+          }
+
+          const userId = userData.id;
+
+          // Strategy: Find or update existing organization
+          // 1. Try to find by stripe_customer_id (existing subscription)
+          // 2. If not found, find user's organization via org_members
+          // 3. Update that organization with stripe details
+          // 4. Only create new org if user has NO organization
+
+          let orgId: string;
+          let existingOrg = null;
+
+          // First, try to find by stripe customer ID
+          const { data: orgByStripe } = await supabase
             .from("organizations")
-            .update({
+            .select("id")
+            .eq("stripe_customer_id", session.customer)
+            .single();
+
+          if (orgByStripe) {
+            existingOrg = orgByStripe;
+          } else {
+            // Try to find user's existing organization via org_members
+            const { data: userOrgData } = await supabase
+              .from("org_members")
+              .select("org_id, organizations!inner(id, name)")
+              .eq("user_id", userId)
+              .eq("role", "owner")
+              .single();
+
+            if (userOrgData) {
+              existingOrg = { id: userOrgData.org_id };
+            }
+          }
+
+          if (existingOrg) {
+            // Update existing organization with subscription details
+            orgId = existingOrg.id;
+
+            const updateData = {
               subscription_plan: planName,
               subscription_status: subscription.status,
+              stripe_customer_id: session.customer as string,
+              stripe_subscription_id: subscription.id,
               subscription_period_end: subscriptionEndDate,
               updated_at: new Date().toISOString(),
-            })
-            .eq("id", org.id);
+            };
 
-          console.log("Updated subscription status:", subscription.status);
+            console.log("Updating existing organization:", orgId, updateData);
+
+            const { error: updateError } = await supabase
+              .from("organizations")
+              .update(updateData)
+              .eq("id", orgId);
+
+            if (updateError) {
+              console.error("Error updating organization:", updateError);
+            } else {
+              console.log("Updated existing organization:", orgId);
+            }
+          } else {
+            // User has no organization - create new one (invited users case)
+            const { data: newOrg, error: createError } = await supabase
+              .from("organizations")
+              .insert({
+                name: `${customerEmail}'s Organization`,
+                subscription_plan: planName,
+                subscription_status: subscription.status,
+                stripe_customer_id: session.customer as string,
+                stripe_subscription_id: subscription.id,
+                subscription_period_end: subscriptionEndDate,
+              })
+              .select("id")
+              .single();
+
+            if (createError) {
+              console.error("Error creating organization:", createError);
+              break;
+            }
+
+            orgId = newOrg.id;
+
+            // Add user as owner
+            const { error: memberError } = await supabase
+              .from("org_members")
+              .insert({
+                org_id: orgId,
+                user_id: userId,
+                role: "owner",
+              });
+
+            if (memberError) {
+              console.error("Error adding user as org member:", memberError);
+            } else {
+              console.log("Created new organization for invited user:", orgId);
+            }
+          }
+
+          break;
         }
-        break;
-      }
 
-      case "customer.subscription.deleted": {
-        const subscription = event.data.object as Stripe.Subscription;
-        console.log("Subscription deleted:", subscription.id);
+        case "customer.subscription.updated": {
+          const subscription = event.data.object as Stripe.Subscription;
+          console.log("Subscription updated:", subscription.id);
 
-        const { data: org } = await supabase
-          .from("organizations")
-          .select("id")
-          .eq("stripe_subscription_id", subscription.id)
-          .single();
-
-        if (org) {
-          await supabase
+          const { data: org, error: orgError } = await supabase
             .from("organizations")
-            .update({
-              subscription_plan: "starter",
-              subscription_status: "canceled",
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", org.id);
+            .select("id")
+            .eq("stripe_subscription_id", subscription.id)
+            .single();
 
-          console.log("Downgraded to free plan");
+          if (orgError) {
+            console.error("Error finding organization:", orgError);
+            break;
+          }
+
+          if (org) {
+            const planName =
+              subscription.metadata?.plan ||
+              subscription.items.data[0].price.metadata?.plan ||
+              determinePlanFromPrice(subscription.items.data[0].price.id);
+            const billingCycle =
+              subscription.metadata?.billingCycle ||
+              subscription.items.data[0].price.recurring?.interval ||
+              "month";
+
+            // Calculate subscription dates
+            const subscriptionStartDate = new Date(
+              subscription.current_period_start * 1000
+            );
+            const subscriptionEndDate = new Date(
+              subscription.current_period_end * 1000
+            );
+            const cancelAtDate = subscription.cancel_at
+              ? new Date(subscription.cancel_at * 1000)
+              : null;
+
+            const { error: updateError } = await supabase
+              .from("organizations")
+              .update({
+                subscription_plan: planName,
+                subscription_status: subscription.status,
+                subscription_period_end: subscriptionEndDate,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", org.id);
+
+            if (updateError) {
+              console.error("Error updating subscription:", updateError);
+            } else {
+              console.log("Updated subscription status:", subscription.status);
+            }
+          }
+          break;
         }
-        break;
-      }
 
-      case "invoice.payment_succeeded": {
-        const invoice = event.data.object as Stripe.Invoice;
-        console.log("Payment succeeded:", invoice.id);
-        // Optional: Send receipt email, update payment history, etc.
-        break;
-      }
+        case "customer.subscription.deleted": {
+          const subscription = event.data.object as Stripe.Subscription;
+          console.log("Subscription deleted:", subscription.id);
 
-      case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice;
-        console.log("Payment failed:", invoice.id);
-
-        const { data: org } = await supabase
-          .from("organizations")
-          .select("id")
-          .eq("stripe_customer_id", invoice.customer as string)
-          .single();
-
-        if (org) {
-          await supabase
+          const { data: org, error: orgError } = await supabase
             .from("organizations")
-            .update({
-              subscription_status: "past_due",
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", org.id);
-        }
-        break;
-      }
+            .select("id")
+            .eq("stripe_subscription_id", subscription.id)
+            .single();
 
-      default:
-        console.log(`Unhandled event type: ${event.type}`);
-    }
+          if (orgError) {
+            console.error("Error finding organization:", orgError);
+            break;
+          }
+
+          if (org) {
+            const { error: updateError } = await supabase
+              .from("organizations")
+              .update({
+                subscription_plan: "starter",
+                subscription_status: "canceled",
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", org.id);
+
+            if (updateError) {
+              console.error("Error downgrading subscription:", updateError);
+            } else {
+              console.log("Downgraded to free plan");
+            }
+          }
+          break;
+        }
+
+        case "invoice.payment_succeeded": {
+          const invoice = event.data.object as Stripe.Invoice;
+          console.log("Payment succeeded:", invoice.id);
+          // Optional: Send receipt email, update payment history, etc.
+          break;
+        }
+
+        case "invoice.payment_failed": {
+          const invoice = event.data.object as Stripe.Invoice;
+          console.log("Payment failed:", invoice.id);
+
+          const { data: org, error: orgError } = await supabase
+            .from("organizations")
+            .select("id")
+            .eq("stripe_customer_id", invoice.customer as string)
+            .single();
+
+          if (orgError) {
+            console.error("Error finding organization:", orgError);
+            break;
+          }
+
+          if (org) {
+            const { error: updateError } = await supabase
+              .from("organizations")
+              .update({
+                subscription_status: "past_due",
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", org.id);
+
+            if (updateError) {
+              console.error(
+                "Error updating subscription status to past_due:",
+                updateError
+              );
+            } else {
+              console.log("Updated subscription status to past_due");
+            }
+          }
+          break;
+        }
+
+        default:
+          console.log(`Unhandled event type: ${event.type}`);
+      }
 
       // Update webhook log status to success
       if (webhookLogId) {
-        await supabase
+        const { error: updateLogError } = await supabase
           .from("webhook_events")
           .update({
             processing_status: "success",
             processed_at: new Date().toISOString(),
           })
           .eq("id", webhookLogId);
+
+        if (updateLogError) {
+          console.error("Error updating webhook log status:", updateLogError);
+        }
       }
 
       return new Response(JSON.stringify({ received: true }), {
@@ -337,10 +390,10 @@ serve(async (req) => {
       });
     } catch (processingError: any) {
       console.error("Error processing webhook:", processingError);
-      
+
       // Update webhook log status to failed
       if (webhookLogId) {
-        await supabase
+        const { error: failLogError } = await supabase
           .from("webhook_events")
           .update({
             processing_status: "failed",
@@ -348,6 +401,10 @@ serve(async (req) => {
             processed_at: new Date().toISOString(),
           })
           .eq("id", webhookLogId);
+
+        if (failLogError) {
+          console.error("Error updating failed webhook log:", failLogError);
+        }
       }
 
       return new Response(JSON.stringify({ error: processingError.message }), {

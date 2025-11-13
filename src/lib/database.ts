@@ -111,6 +111,24 @@ export const database = {
     } catch {}
   },
 
+  async resetPasswordForEmail(email: string) {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback`,
+    });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async updatePassword(newPassword: string) {
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) throw error;
+    return data;
+  },
+
   async getCurrentUser(): Promise<User | null> {
     const {
       data: { user },

@@ -7,7 +7,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
 
-export const SignInForm: React.FC = () => {
+interface SignInFormProps {
+  onForgotPassword?: () => void;
+}
+
+export const SignInForm: React.FC<SignInFormProps> = ({ onForgotPassword }) => {
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,6 +70,16 @@ export const SignInForm: React.FC = () => {
             className="pl-10"
             required
           />
+        </div>
+        <div className="flex justify-end w-full">
+          <Button
+            type="button"
+            variant="link"
+            onClick={onForgotPassword}
+            className="text-blue-600 hover:text-blue-800 p-0 h-auto font-medium text-sm mt-1"
+          >
+            Forgot password?
+          </Button>
         </div>
       </div>
 

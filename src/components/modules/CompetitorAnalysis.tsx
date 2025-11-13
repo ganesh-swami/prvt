@@ -185,7 +185,7 @@ const CompetitorAnalysisContent: React.FC<{ projectId?: string }> = ({
                   Start analyzing your competition by adding competitors. Click
                   the "Add Competitor" tab to get started.
                 </p>
-                <Button
+                {/* <Button
                   onClick={() => {
                     const addTab = document.querySelector('[value="add"]');
                     if (addTab instanceof HTMLElement) {
@@ -196,7 +196,7 @@ const CompetitorAnalysisContent: React.FC<{ projectId?: string }> = ({
                 >
                   <Plus className="w-4 h-4" />
                   Add Your First Competitor
-                </Button>
+                </Button> */}
               </CardContent>
             </Card>
           ) : (

@@ -8,8 +8,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Lock, Sparkles, ArrowRight, Check } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import pricingData from "../../../public/pricing.json";
+import { useAppContext } from "@/contexts/AppContext";
+import pricingData from "@/../public/pricing.json";
 
 interface UpgradeRequiredProps {
   featureId: string;
@@ -24,7 +24,11 @@ export function UpgradeRequired({
   currentPlan,
   description,
 }: UpgradeRequiredProps) {
-  const navigate = useNavigate();
+  const { setCurrentModule } = useAppContext();
+
+  const handleUpgradeClick = () => {
+    setCurrentModule("pricing-module");
+  };
 
   // Find which plans have this feature
   const availableInPlans: string[] = [];
@@ -121,7 +125,7 @@ export function UpgradeRequired({
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <Button
-              onClick={() => navigate("/pricing")}
+              onClick={handleUpgradeClick}
               className="flex-1 h-12 text-base"
               size="lg"
             >
@@ -129,7 +133,7 @@ export function UpgradeRequired({
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <Button
-              onClick={() => navigate("/pricing")}
+              onClick={handleUpgradeClick}
               variant="outline"
               className="flex-1 h-12 text-base"
               size="lg"
