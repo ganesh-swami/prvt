@@ -45,6 +45,8 @@ const UnitEconomicsVisualizations: React.FC<VisualizationsProps> = ({ results, m
     { metric: 'Payback (months)', value: results.paybackPeriod, target: 12, status: results.paybackPeriod <= 12 ? 'good' : 'poor' }
   ];
 
+  console.log("metricsComparison", metricsComparison);
+
   const COLORS = ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B'];
 
   return (
@@ -64,10 +66,17 @@ const UnitEconomicsVisualizations: React.FC<VisualizationsProps> = ({ results, m
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={revenueData}>
+              <BarChart data={revenueData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
-                <YAxis />
+                <YAxis
+                  tickFormatter={(value) => {
+                    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                    if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
+                    return value.toString();
+                  }}
+                  width={60}
+                />
                 <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Value']} />
                 <Bar dataKey="value" fill="#3B82F6" />
               </BarChart>
@@ -109,14 +118,33 @@ const UnitEconomicsVisualizations: React.FC<VisualizationsProps> = ({ results, m
           <CardTitle className="text-sm">Key Metrics Performance</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={metricsComparison} layout="horizontal">
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart
+              data={metricsComparison}
+              margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis dataKey="metric" type="category" width={100} />
-              <Tooltip />
-              <Bar dataKey="value" fill="#3B82F6" />
-              <Bar dataKey="target" fill="#10B981" opacity={0.3} />
+              <XAxis
+                dataKey="metric"
+                angle={-45}
+                textAnchor="end"
+                height={80}
+                tick={{ fontSize: 11 }}
+              />
+              <YAxis
+                domain={[0, (dataMax: number) => Math.ceil(Math.max(dataMax, 1) * 1.1)]}
+                tick={{ fontSize: 11 }}
+              />
+              <Tooltip
+                formatter={(value: number, name: string) => {
+                  if (name === 'value') return [value.toFixed(2), 'Current Value'];
+                  if (name === 'target') return [value.toFixed(2), 'Target'];
+                  return [value, name];
+                }}
+                labelFormatter={(label) => `Metric: ${label}`}
+              />
+              <Bar dataKey="value" fill="#3B82F6" name="Current Value" />
+              <Bar dataKey="target" fill="#10B981" opacity={0.3} name="Target" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

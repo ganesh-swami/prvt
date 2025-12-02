@@ -64,6 +64,7 @@ serve(async (req) => {
       cancel_url: `${origin}/payment-status?success=true&session_id={CHECKOUT_SESSION_ID}`,
       customer_email: userEmail,
       client_reference_id: orgId || userId,
+      allow_promotion_codes: true,
       metadata: {
         userId,
         orgId: orgId || "",
